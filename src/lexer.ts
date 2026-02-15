@@ -26,6 +26,7 @@ export class Lexer {
     ["bool", TokenType.TYPE_BOOL],
     ["true", TokenType.BOOL_LITERAL],
     ["false", TokenType.BOOL_LITERAL],
+    ["rand", TokenType.RAND],
   ]);
 
   constructor(source: string) {
@@ -414,12 +415,6 @@ export class Lexer {
           this.advance();
           this.tokens.push(
             createToken(TokenType.SEMICOLON, ";", startLine, startCol)
-          );
-          break;
-        case ".":
-          this.advance();
-          this.tokens.push(
-            createToken(TokenType.DOT, ".", startLine, startCol)
           );
           break;
         case ",":

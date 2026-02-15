@@ -1,0 +1,10 @@
+@VoidApp "EncodingTest";
+
+main()
+{
+    echo("Проверка кодировки:");
+    create:string name = write("Введите ваше имя: ");
+    echo("Привет, ", name, "!");
+}
+
+@VoidEnd;

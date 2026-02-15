@@ -1,0 +1,30 @@
+@VoidApp "Calculator";
+using style "Dawn";
+
+main()
+{
+    echo("=== Калькулятор Void ===");
+    echo("");
+    
+    create:float a = toFloat(write("Первое число: "));
+    create:float b = toFloat(write("Второе число: "));
+    
+    echo("");
+    echo("Результаты:");
+    echo(a, "+", b, "=", a + b);
+    echo(a, "-", b, "=", a - b);
+    echo(a, "*", b, "=", a * b);
+    
+    if (b != 0)
+    {
+        echo(a, "/", b, "=", a / b);
+        echo(a, "%", b, "=", a % b);
+    }
+    else
+    {
+        echo("Деление на ноль невозможно!");
+    }
+    
+    echo(a, "**", b, "=", a ** b);
+}
+@VoidEnd;

@@ -25,7 +25,8 @@ export type ASTNode =
   | StringLiteralNode
   | BoolLiteralNode
   | IdentifierNode
-  | FunctionCallNode;
+  | FunctionCallNode
+  | RandCallNode;
 
 export interface ProgramNode {
   type: "Program";
@@ -144,6 +145,12 @@ export interface FunctionCallNode {
   type: "FunctionCall";
   name: string;
   args: ASTNode[];
+}
+
+export interface RandCallNode {
+  type: "RandCall";
+  min: ASTNode;
+  max: ASTNode;
 }
 
 // Парсер
@@ -364,14 +371,10 @@ export class Parser {
 
     //Точка в конце (согласно синтаксису: create:type name = data.).
     //Но также поддержим точку с запятой для удобства.
-    if (this.check(TokenType.DOT)) {
-      this.advance();
-    } else if (this.check(TokenType.SEMICOLON)) {
+    if (this.check(TokenType.SEMICOLON)) {
       this.advance();
     } else {
-      this.error(
-        'После объявления переменной ожидается "." или ";"'
-      );
+      this.error('После объявления переменной ожидается ";"');
     }
 
     return {
@@ -390,11 +393,7 @@ export class Parser {
     if (this.check(TokenType.ASSIGN)) {
       this.advance();
       const value = this.parseExpression();
-      if (this.check(TokenType.DOT)) {
-        this.advance();
-      } else {
-        this.expect(TokenType.SEMICOLON);
-      }
+      this.expect(TokenType.SEMICOLON, 'После присваивания ожидается ";".');
       return {
         type: "AssignVar",
         name: name.value,
@@ -414,6 +413,16 @@ export class Parser {
       }
       this.expect(TokenType.RPAREN);
       this.expect(TokenType.SEMICOLON);
+      if (name.value === "rand") {
+        if (args.length !== 2) {
+          this.error("Функция rand() ожидает 2 аргумента: min и max.");
+        }
+        return {
+          type: "RandCall",
+          min: args[0],
+          max: args[1],
+        } as RandCallNode;
+      }
       return {
         type: "FunctionCall",
         name: name.value,

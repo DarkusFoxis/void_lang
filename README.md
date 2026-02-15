@@ -226,7 +226,7 @@ using style "Abyss";
 
 main()
 {
-    create:int x = 42.
+    create:int x = 42;
     echo(x * x);
 }
 
@@ -294,11 +294,11 @@ using style "Twilight";
 
 main()
 {
-    create:int a = 15.
-    create:int b = 27.
+    create:int a = 15;
+    create:int b = 27;
 
     #* Находим среднее арифметическое *#
-    create:float average = (a + b) / 2.
+    create:float average = (a + b) / 2;
     echo("Среднее:", average);
     
     if (average > 20)
@@ -338,11 +338,11 @@ using style "Ember";
 
 main()
 {
-    create:float result = ((2 ** 10) + sqrt(144)) * 3.14 / 2.
+    create:float result = ((2 ** 10) + sqrt(144)) * 3.14 / 2;
     echo("Результат:", result, "| Округлённо:", round(result));
     
-    create:int i = 1.
-    create:int sum = 0.
+    create:int i = 1;
+    create:int sum = 0;
     while (i <= 100) { sum = sum + i. i = i + 1; }
     echo("Сумма 1..100:", sum);
 }
@@ -375,14 +375,14 @@ using style "Frost";
 main()
 {
     create:string input = write("Введите число: ");
-    create:float number = toFloat(input).
+    create:float number = toFloat(input);
     
-    create:bool isPositive = number > 0.
-    create:bool isWhole = number == toFloat(toInt(number)).
+    create:bool isPositive = number > 0;
+    create:bool isWhole = number == toFloat(toInt(number));
     
     if (isPositive && isWhole)
     {
-        create:int wholeNumber = toInt(number).
+        create:int wholeNumber = toInt(number);
         echo("Целое положительное число:", wholeNumber);
     }
     else if (isPositive && !isWhole)
@@ -424,10 +424,10 @@ main()
 {
     create:string wave = "Привет".
 
-    create:int depth = 1.
+    create:int depth = 1;
     while (depth <= 5)
     {
-        create:string current = wave + " ~".
+        create:string current = wave + " ~";
         echo(current);
 
         wave = current.
@@ -549,14 +549,14 @@ using style "Dawn";
 main()
 {
     // ===== Блок инициализации =====
-    create:int x = 10.    // Координата X
-    create:int y = 20.    // Координата Y
+    create:int x = 10;    // Координата X
+    create:int y = 20;    // Координата Y
 
     #*
         Вычисляем расстояние от начала координат
         по формуле: d = sqrt(x² + y²)
     *#
-    create:float distance = sqrt(x ** 2 + y ** 2).
+    create:float distance = sqrt(x ** 2 + y ** 2);
     
     echo("Расстояние:", distance);
 }
@@ -575,8 +575,8 @@ Void поддерживает **4 базовых типа данных**:
 Текстовые данные, заключённые в двойные или одинарные кавычки.
 
 ```
-create:string name = "Void Language".
-create:string quote = "Он сказал: \"Привет!\"".
+create:string name = "Void Language";
+create:string quote = "Он сказал: \"Привет!\"";
 ```
 
 **Escape-последовательности:**
@@ -593,17 +593,17 @@ create:string quote = "Он сказал: \"Привет!\"".
 **Конкатенация строк:**
 
 ```
-create:string first = "Hello".
-create:string second = " World".
-create:string result = first + second.  // "Hello World"
+create:string first = "Hello";
+create:string second = " World";
+create:string result = first + second.  // "Hello World";
 ```
 
 **Конкатенация с другими типами:**
 
 ```
-create:string msg = "Ответ: " + 42.      // "Ответ: 42"
-create:string msg2 = "Пи = " + 3.14.     // "Пи = 3.14"
-create:string msg3 = "Флаг: " + true.    // "Флаг: true"
+create:string msg = "Ответ: " + 42;      // "Ответ: 42"
+create:string msg2 = "Пи = " + 3.14;     // "Пи = 3.14"
+create:string msg3 = "Флаг: " + true;    // "Флаг: true"
 ```
 
 ### 6.2 `int` — Целое число
@@ -611,10 +611,10 @@ create:string msg3 = "Флаг: " + true.    // "Флаг: true"
 Целые числа без дробной части.
 
 ```
-create:int age = 25.
-create:int negative = -10.
-create:int zero = 0.
-create:int big = 1000000.
+create:int age = 25;
+create:int negative = -10;
+create:int zero = 0;
+create:int big = 1000000;
 ```
 
 **Особенности:**
@@ -622,8 +622,8 @@ create:int big = 1000000.
 - Диапазон ограничен JavaScript Number
 
 ```
-create:int x = 7.   // 7
-create:int y = 3.    // Если присвоить 3.9 → будет 3
+create:int x = 7;   // 7
+create:int y = 3;    // Если присвоить 3.9 → будет 3
 ```
 
 ### 6.3 `float` — Число с плавающей точкой
@@ -631,9 +631,9 @@ create:int y = 3.    // Если присвоить 3.9 → будет 3
 Числа с дробной частью.
 
 ```
-create:float pi = 3.14159.
-create:float temperature = -15.5.
-create:float small = 0.001.
+create:float pi = 3.14159;
+create:float temperature = -15.5;
+create:float small = 0.001;
 ```
 
 **Особенности:**
@@ -688,15 +688,15 @@ create:тип имя = значение.
 | `имя` | Имя переменной (буквы, цифры, `_`) |
 | `=` | Оператор присваивания |
 | `значение` | Выражение или литерал |
-| `.` | **Точка в конце** (обязательна!) |
+| `;` | **Точка с запятой в конце** (обязательна!) |
 
 **Примеры:**
 
 ```
-create:string name = "Void".
-create:int count = 0.
-create:float ratio = 0.75.
-create:bool isReady = true.
+create:string name = "Void";
+create:int count = 0;
+create:float ratio = 0.75;
+create:bool isReady = true;
 ```
 
 ### 7.2 Именование переменных
@@ -710,19 +710,19 @@ create:bool isReady = true.
 **Допустимые имена:**
 
 ```
-create:int x = 1.
-create:int myVariable = 2.
-create:int _private = 3.
-create:int player1Score = 100.
-create:int MAX_VALUE = 999.
+create:int x = 1;
+create:int myVariable = 2;
+create:int _private = 3;
+create:int player1Score = 100;
+create:int MAX_VALUE = 999;
 ```
 
 **Недопустимые имена:**
 
 ```
-create:int 1variable = 1.   // Начинается с цифры
-create:int my-var = 2.      // Содержит дефис
-create:int main = 3.        // Ключевое слово
+create:int 1variable = 1;   // Начинается с цифры
+create:int my-var = 2;      // Содержит дефис
+create:int main = 3;        // Ключевое слово
 ```
 
 ### 7.3 Инициализация выражениями
@@ -730,19 +730,19 @@ create:int main = 3.        // Ключевое слово
 Переменные можно инициализировать любым выражением:
 
 ```
-create:int sum = 10 + 20.
-create:float area = 3.14 * 5 ** 2.
-create:string greeting = "Hello, " + "World!".
-create:bool isAdult = 25 >= 18.
-create:int sqrtVal = toInt(sqrt(144)).
+create:int sum = 10 + 20;
+create:float area = 3.14 * 5 ** 2;
+create:string greeting = "Hello, " + "World!";
+create:bool isAdult = 25 >= 18;
+create:int sqrtVal = toInt(sqrt(144));
 ```
 
 ### 7.4 Изменение переменных
 
-После создания значение можно изменить (используется `;` или `.`):
+После создания значение можно изменить (используется `;`):
 
 ```
-create:int x = 10.
+create:int x = 10;
 echo(x);        // 10
 
 x = x + 5;
@@ -759,11 +759,11 @@ echo(x);        // 30
 Переменные имеют **блочную область видимости**:
 
 ```
-create:int x = 10.
+create:int x = 10;
 
 if (true)
 {
-    create:int y = 20.     // y видна только здесь
+    create:int y = 20;     // y видна только здесь
     echo(x);               // 10 — x видна из внешнего блока
     echo(y);               // 20
 }
@@ -775,9 +775,9 @@ echo(x);                   // 10 — OK
 ### 7.6 Ввод данных в переменную
 
 ```
-create:string name = write("Ваше имя: ").
-create:string ageStr = write("Ваш возраст: ").
-create:int age = toInt(ageStr).
+create:string name = write("Ваше имя: ");
+create:string ageStr = write("Ваш возраст: ");
+create:int age = toInt(ageStr);
 ```
 
 ---
@@ -798,8 +798,8 @@ create:int age = toInt(ageStr).
 **Примеры:**
 
 ```
-create:int a = 15.
-create:int b = 4.
+create:int a = 15;
+create:int b = 4;
 
 echo(a + b);    // 19
 echo(a - b);    // 11
@@ -814,7 +814,7 @@ echo(a ** b);   // 50625
 Оператор `+` для строк выполняет **конкатенацию**:
 
 ```
-create:string result = "Hello" + ", " + "World!".
+create:string result = "Hello" + ", " + "World!";
 echo(result);  // Hello, World!
 ```
 
@@ -840,8 +840,8 @@ echo("Ответ: " + true);      // Ответ: true
 **Результат сравнения** — всегда `bool`:
 
 ```
-create:bool isEqual = (10 == 10).     // true
-create:bool isMore = (5 > 10).        // false
+create:bool isEqual = (10 == 10);     // true
+create:bool isMore = (5 > 10);        // false
 ```
 
 ### 8.4 Логические операторы
@@ -864,8 +864,8 @@ create:bool isMore = (5 > 10).        // false
 **Пример:**
 
 ```
-create:int age = 25.
-create:bool hasLicense = true.
+create:int age = 25;
+create:bool hasLicense = true;
 
 if (age >= 18 && hasLicense)
 {
@@ -881,11 +881,11 @@ if (age >= 18 && hasLicense)
 | `!` | Логическое отрицание | `!true` | `false` |
 
 ```
-create:int x = 10.
+create:int x = 10;
 echo(-x);        // -10
 echo(-(-x));     // 10
 
-create:bool flag = true.
+create:bool flag = true;
 echo(!flag);     // false
 ```
 
@@ -919,9 +919,9 @@ echo(true || false && false);  // true (&&  выше ||)
 Скобки `()` изменяют приоритет вычислений:
 
 ```
-create:int a = (2 + 3) * (4 - 1).     // 15
-create:int b = 2 + 3 * 4 - 1.         // 13
-create:float c = (10.0 + 20.0) / 3.0. // 10.0
+create:int a = (2 + 3) * (4 - 1);     // 15
+create:int b = 2 + 3 * 4 - 1;         // 13
+create:float c = (10.0 + 20.0) / 3.0; // 10.0
 ```
 
 ---
@@ -954,7 +954,7 @@ echo(2 + 2);
 echo("Результат:", 10 * 5 + 3);
 
 // Переменные
-create:string name = "User".
+create:string name = "User";
 echo("Привет,", name, "!");
 ```
 
@@ -986,14 +986,14 @@ write("подсказка")
 
 ```
 // Простой ввод строки
-create:string name = write("Ваше имя: ").
+create:string name = write("Ваше имя: ");
 
 // Ввод числа (требуется преобразование)
-create:string input = write("Введите число: ").
-create:int number = toInt(input).
+create:string input = write("Введите число: ");
+create:int number = toInt(input);
 
 // Ввод дробного числа
-create:float value = toFloat(write("Введите значение: ")).
+create:float value = toFloat(write("Введите значение: "));
 ```
 
 **Полный пример:**
@@ -1004,9 +1004,9 @@ using style "Dawn";
 
 main()
 {
-    create:string name = write("Как вас зовут? ").
-    create:int age = toInt(write("Сколько вам лет? ")).
-    create:string city = write("Из какого вы города? ").
+    create:string name = write("Как вас зовут? ");
+    create:int age = toInt(write("Сколько вам лет? "));
+    create:string city = write("Из какого вы города? ");
     
     echo("");
     echo("=== Ваша анкета ===");
@@ -1043,7 +1043,7 @@ if (условие)
 **Пример:**
 
 ```
-create:int x = 10.
+create:int x = 10;
 
 if (x > 5)
 {
@@ -1067,7 +1067,7 @@ else
 **Пример:**
 
 ```
-create:int age = 15.
+create:int age = 15;
 
 if (age >= 18)
 {
@@ -1103,7 +1103,7 @@ else
 **Пример:**
 
 ```
-create:int score = 75.
+create:int score = 75;
 
 if (score >= 90)
 {
@@ -1130,8 +1130,8 @@ else
 ### 10.4 Вложенные условия
 
 ```
-create:int x = 10.
-create:int y = 20.
+create:int x = 10;
+create:int y = 20;
 
 if (x > 0)
 {
@@ -1155,9 +1155,9 @@ else
 ### 10.5 Сложные условия
 
 ```
-create:int age = 25.
-create:bool isStudent = true.
-create:float income = 15000.50.
+create:int age = 25;
+create:bool isStudent = true;
+create:float income = 15000.50;
 
 if (age >= 18 && age <= 30 && (isStudent || income < 20000))
 {
@@ -1183,7 +1183,7 @@ while (условие)
 **Пример — счётчик:**
 
 ```
-create:int i = 1.
+create:int i = 1;
 while (i <= 10)
 {
     echo("Шаг:", i);
@@ -1194,8 +1194,8 @@ while (i <= 10)
 **Пример — сумма чисел:**
 
 ```
-create:int sum = 0.
-create:int n = 1.
+create:int sum = 0;
+create:int n = 1;
 while (n <= 100)
 {
     sum = sum + n;
@@ -1227,7 +1227,7 @@ for (create:int i = 0; i < 10; i = i + 1)
 **Пример — таблица умножения:**
 
 ```
-create:int n = 7.
+create:int n = 7;
 echo("Таблица умножения на", n);
 for (create:int i = 1; i <= 10; i = i + 1)
 {
@@ -1290,7 +1290,8 @@ while (true)
 | `round(x)` | Округление к ближайшему | `round(3.5)` | `4` |
 | `min(a, b)` | Минимум из двух | `min(5, 3)` | `3` |
 | `max(a, b)` | Максимум из двух | `max(5, 3)` | `5` |
-| `random()` | Случайное число [0, 1) | `random()` | `0.7341...` |
+| `random()` | Случайное число [0, 1) (Устаревшее) | `random()` | `0.7341...` |
+| `rand()` | Случайное число [min, max) | `rand(0, 2000)` | `1234` |`
 
 **Примеры:**
 
@@ -1304,13 +1305,17 @@ echo(min(100, 200));         // 100
 echo(max(100, 200));         // 200
 
 // Случайное целое число от 1 до 100
-create:int randomNum = toInt(random() * 100) + 1.
+create:int randomNum = toInt(random() * 100) + 1;
 echo("Случайное:", randomNum);
 
+// Случайное число от 1 до 15
+create:int randomNew = toInt(rand(1, 15));
+echo("Случайное:", randomNew);
+
 // Расстояние между точками
-create:float x1 = 3.0.
-create:float y1 = 4.0.
-create:float distance = sqrt(x1 ** 2 + y1 ** 2).
+create:float x1 = 3.0;
+create:float y1 = 4.0;
+create:float distance = sqrt(x1 ** 2 + y1 ** 2);
 echo("Расстояние:", distance);  // 5
 ```
 
@@ -1327,13 +1332,13 @@ echo("Расстояние:", distance);  // 5
 
 ```
 // Строка → Число
-create:string input = write("Введите число: ").
-create:int number = toInt(input).
-create:float decimal = toFloat(input).
+create:string input = write("Введите число: ");
+create:int number = toInt(input);
+create:float decimal = toFloat(input);
 
 // Число → Строка
-create:int age = 25.
-create:string ageStr = toString(age).
+create:int age = 25;
+create:string ageStr = toString(age);
 echo("Мне " + ageStr + " лет");
 
 // Число → Bool
@@ -1357,7 +1362,7 @@ echo(toBool("text")); // true
 **Примеры:**
 
 ```
-create:string text = "  Hello, Void Language!  ".
+create:string text = "  Hello, Void Language!  ";
 
 echo("Оригинал:", text);
 echo("Длина:", length(text));
@@ -1413,10 +1418,10 @@ echo("Содержит 'Python':", contains(text, "Python"));
 При создании переменной значение **автоматически приводится** к указанному типу:
 
 ```
-create:int x = 3.7.        // x = 3 (floor)
-create:float y = 42.       // y = 42.0
-create:string z = 100.     // z = "100"
-create:bool flag = 1.      // flag = true
+create:int x = 3.7;        // x = 3 (floor)
+create:float y = 42;       // y = 42.0
+create:string z = 100;     // z = "100"
+create:bool flag = 1;      // flag = true
 ```
 
 ### 13.2 Явное приведение
@@ -1424,12 +1429,12 @@ create:bool flag = 1.      // flag = true
 Используйте функции преобразования:
 
 ```
-create:string numStr = "42".
+create:string numStr = "42";
 
-create:int num = toInt(numStr).         // 42
-create:float dec = toFloat(numStr).     // 42.0
-create:bool b = toBool(numStr).         // true
-create:string s = toString(42).         // "42"
+create:int num = toInt(numStr);         // 42
+create:float dec = toFloat(numStr);     // 42.0
+create:bool b = toBool(numStr);         // true
+create:string s = toString(42);         // "42"
 ```
 
 ### 13.3 Правила конкатенации
@@ -1452,10 +1457,10 @@ echo(3.14 + 2.86);                  // 6.0
 ### 13.4 Ошибки приведения
 
 ```
-create:int x = toInt("abc").    // x = 0 (NaN → 0 через ||)
+create:int x = toInt("abc");    // x = 0 (NaN → 0 через ||)
 
 // Прямое присваивание нечисловой строки в int — ОШИБКА
-create:int y = "hello".        // Runtime Error!
+create:int y = "hello";        // Runtime Error!
 ```
 
 ---
@@ -1473,8 +1478,8 @@ main()
     echo("=== Калькулятор Void ===");
     echo("");
     
-    create:float a = toFloat(write("Первое число: ")).
-    create:float b = toFloat(write("Второе число: ")).
+    create:float a = toFloat(write("Первое число: "));
+    create:float b = toFloat(write("Второе число: "));
     
     echo("");
     echo("Результаты:");
@@ -1508,13 +1513,13 @@ main()
 {
     echo("=== Угадай число! ===");
     
-    create:int secret = toInt(random() * 100) + 1.
-    create:int attempts = 0.
-    create:bool guessed = false.
+    create:int secret = toInt(random() * 100) + 1;
+    create:int attempts = 0;
+    create:bool guessed = false;
     
     while (!guessed)
     {
-        create:int guess = toInt(write("Ваша догадка (1-100): ")).
+        create:int guess = toInt(write("Ваша догадка (1-100): "));
         attempts = attempts + 1;
         
         if (guess == secret)
@@ -1546,15 +1551,15 @@ main()
 {
     create:int n = toInt(write("Сколько чисел Фибоначчи вывести? ")).
     
-    create:int a = 0.
-    create:int b = 1.
-    create:int count = 0.
+    create:int a = 0;
+    create:int b = 1;
+    create:int count = 0;
     
     echo("Числа Фибоначчи:");
     while (count < n)
     {
         echo(a);
-        create:int temp = a + b.
+        create:int temp = a + b;
         a = b;
         b = temp;
         count = count + 1;
@@ -1572,9 +1577,9 @@ using style "Frost";
 
 main()
 {
-    create:int num = toInt(write("Введите число: ")).
+    create:int num = toInt(write("Введите число: "));
     
-    create:bool isPrime = true.
+    create:bool isPrime = true;
     
     if (num <= 1)
     {
@@ -1586,7 +1591,7 @@ main()
     }
     else
     {
-        create:int divisor = 2.
+        create:int divisor = 2;
         while (divisor <= toInt(sqrt(toFloat(num))))
         {
             if (num % divisor == 0)
@@ -1623,17 +1628,17 @@ main()
     echo("2. Фаренгейт → Цельсий");
     echo("");
 
-    create:int choice = toInt(write("Выберите (1 или 2): ")).
-    create:float temp = toFloat(write("Введите температуру: ")).
+    create:int choice = toInt(write("Выберите (1 или 2): "));
+    create:float temp = toFloat(write("Введите температуру: "));
 
     if (choice == 1)
     {
-        create:float result = temp * 9 / 5 + 32.
+        create:float result = temp * 9 / 5 + 32;
         echo(temp, "°C =", round(result * 100) / 100, "°F");
     }
     else if (choice == 2)
     {
-        create:float result = (temp - 32) * 5 / 9.
+        create:float result = (temp - 32) * 5 / 9;
         echo(temp, "°F =", round(result * 100) / 100, "°C");
     }
     else
@@ -1653,7 +1658,7 @@ using style "Verdant";
 
 main()
 {
-    create:int height = toInt(write("Высота треугольника: ")).
+    create:int height = toInt(write("Высота треугольника: "));
     
     echo("");
     for (create:int i = 1; i <= height; i = i + 1)
@@ -1735,7 +1740,7 @@ main()
 
 | Ошибка | Причина | Решение |
 |---|---|---|
-| Забыта `.` после `create:` | `create:int x = 5` | `create:int x = 5.` |
+| Забыта `;` после `create:` | `create:int x = 5` | `create:int x = 5;` |
 | Забыта `;` после `echo()` | `echo("hi")` | `echo("hi");` |
 | Забыт `@VoidEnd;` | Программа не завершена | Добавьте `@VoidEnd;` |
 | `create:` без типа | `create: x = 5.` | `create:int x = 5.` |
@@ -1748,16 +1753,16 @@ main()
 1. **Используйте `echo()` для отладки:**
 
 ```
-create:int x = someExpression.
+create:int x = someExpression;
 echo("DEBUG x =", x);  // Временный вывод
 ```
 
 2. **Проверяйте типы:**
 
 ```
-create:string input = write("Число: ").
+create:string input = write("Число: ");
 echo("Введено:", input, "тип: string");
-create:int num = toInt(input).
+create:int num = toInt(input);
 echo("Преобразовано:", num, "тип: int");
 ```
 
@@ -1765,13 +1770,13 @@ echo("Преобразовано:", num, "тип: int");
 
 ```
 // Вместо сложного выражения
-create:float result = sqrt(abs(x ** 2 - y ** 2)) / (2 * pi).
+create:float result = sqrt(abs(x ** 2 - y ** 2)) / (2 * pi);
 
 // Разбейте на шаги
-create:float diff = x ** 2 - y ** 2.
-create:float absDiff = abs(diff).
-create:float sqrtVal = sqrt(absDiff).
-create:float result = sqrtVal / (2 * pi).
+create:float diff = x ** 2 - y ** 2;
+create:float absDiff = abs(diff);
+create:float sqrtVal = sqrt(absDiff);
+create:float result = sqrtVal / (2 * pi);
 ```
 
 ---
@@ -1815,7 +1820,7 @@ create:float result = sqrtVal / (2 * pi).
 | Символ | Назначение |
 |---|---|
 | `;` | Конец инструкции |
-| `.` | Конец объявления переменной |
+| `;` | Конец объявления переменной |
 | `,` | Разделитель аргументов |
 | `( )` | Группировка / аргументы |
 | `{ }` | Блок кода |

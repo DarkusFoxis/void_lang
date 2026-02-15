@@ -14,6 +14,7 @@ export enum TokenType {
   ELSE = "ELSE",                   //else
   WHILE = "WHILE",                 //while
   FOR = "FOR",                     //for
+  RAND = "RAND",                   //rand
 
   //Типы данных.
   TYPE_STRING = "TYPE_STRING",     //string
@@ -58,7 +59,6 @@ export enum TokenType {
   LBRACE = "LBRACE",               //{
   RBRACE = "RBRACE",               //}
   SEMICOLON = "SEMICOLON",         //;
-  DOT = "DOT",                     //.
   COMMA = "COMMA",                 //,
   COLON = "COLON",                 //:
 

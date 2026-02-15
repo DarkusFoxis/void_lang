@@ -2,6 +2,16 @@
 //Void Language Interpreter
 //Точка входа.
 
+// Установка UTF-8 кодировки для Windows консоли
+if (process.platform === 'win32') {
+  const { execSync } = require('child_process');
+  try {
+    execSync('chcp 65001', { stdio: 'ignore' });
+  } catch (e) {
+    // Игнорируем ошибки, консоль может быть с ограничениями
+  }
+}
+
 import * as fs from "fs";
 import * as path from "path";
 import { Lexer } from "./lexer";

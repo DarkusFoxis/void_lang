@@ -1,0 +1,14 @@
+@VoidApp "FullTest";
+
+main()
+{
+    echo("=== Полный тест кодировки ===");
+    create:string name = write("Введите ваше имя: ");
+    create:int age = toInt(write("Введите ваш возраст: "));
+    echo("");
+    echo("Привет, ", name, "!");
+    echo("Тебе ", age, " лет.");
+    echo("Добро пожаловать в Void!");
+}
+
+@VoidEnd;

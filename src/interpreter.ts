@@ -19,6 +19,7 @@ import {
   BoolLiteralNode,
   IdentifierNode,
   FunctionCallNode,
+  RandCallNode,
 } from "./parser";
 
 import * as readlineSync from "readline-sync";
@@ -46,7 +47,7 @@ class Environment {
   define(name: string, type: string, value: VoidValue): void {
     if (this.variables.has(name)) {
       throw new Error(
-        `[Runtime Error] Переменная '${name}' уже определена`
+        `[Runtime Error] Переменная '${name}' уже определена.`
       );
     }
     this.variables.set(name, { type, value });
@@ -61,7 +62,7 @@ class Environment {
       return this.parent.get(name);
     }
     throw new Error(
-      `[Runtime Error] Переменная '${name}' не определена`
+      `[Runtime Error] Переменная '${name}' не определена.`
     );
   }
 
@@ -77,7 +78,7 @@ class Environment {
       return;
     }
     throw new Error(
-      `[Runtime Error] Переменная '${name}' не определена`
+      `[Runtime Error] Переменная '${name}' не определена.`
     );
   }
 
@@ -159,9 +160,11 @@ export class Interpreter {
         return this.executeIdentifier(node as IdentifierNode, env);
       case "FunctionCall":
         return this.executeFunctionCall(node as FunctionCallNode, env);
+      case "RandCall":
+        return this.executeRandCall(node as RandCallNode, env);
       default:
         throw new Error(
-          `[Runtime Error] Неизвестный узел AST: ${(node as any).type}`
+          `[Runtime Error] Неизвестный узел AST: ${(node as any).type}.`
         );
     }
   }
@@ -196,6 +199,7 @@ export class Interpreter {
   //write("prompt") — чтение ввода
   private executeWrite(node: WriteNode, env: Environment): VoidValue {
     const prompt = this.stringify(this.executeNode(node.prompt, env));
+    // Используем readlineSync.question для корректной обработки кодировки
     const input = readlineSync.question(prompt);
     return input;
   }
@@ -277,7 +281,7 @@ export class Interpreter {
       iterations++;
       if (iterations > MAX_ITERATIONS) {
         throw new Error(
-          `[Runtime Error] Превышено максимальное число итераций`
+          `[Runtime Error] Превышено максимальное число итераций.`
         );
       }
     }
@@ -305,7 +309,7 @@ export class Interpreter {
         }
         throw new Error(
           `[Runtime Error] Невозможно сложить ` +
-          `${typeof left} и ${typeof right}`
+          `${typeof left} и ${typeof right}.`
         );
       }
       case "-":
@@ -315,14 +319,14 @@ export class Interpreter {
       case "/": {
         const divisor = this.toNumber(right);
         if (divisor === 0) {
-          throw new Error("[Runtime Error] Деление на ноль");
+          throw new Error("[Runtime Error] Деление на ноль.");
         }
         return this.toNumber(left) / divisor;
       }
       case "%": {
         const mod = this.toNumber(right);
         if (mod === 0) {
-          throw new Error("[Runtime Error] Деление на ноль (модуль)");
+          throw new Error("[Runtime Error] Деление на ноль (модуль).");
         }
         return this.toNumber(left) % mod;
       }
@@ -351,7 +355,7 @@ export class Interpreter {
 
       default:
         throw new Error(
-          `[Runtime Error] Неизвестный оператор: ${node.operator}`
+          `[Runtime Error] Неизвестный оператор: ${node.operator}.`
         );
     }
   }
@@ -370,7 +374,7 @@ export class Interpreter {
         return !this.isTruthy(operand);
       default:
         throw new Error(
-          `[Runtime Error] Неизвестный унарный оператор: ${node.operator}`
+          `[Runtime Error] Неизвестный унарный оператор: ${node.operator}.`
         );
     }
   }
@@ -456,11 +460,24 @@ export class Interpreter {
 
       default:
         throw new Error(
-          `[Runtime Error] Неизвестная функция: '${node.name}'`
+          `[Runtime Error] Неизвестная функция: '${node.name}'.`
         );
     }
   }
 
+  private executeRandCall(node: RandCallNode, env: Environment): VoidValue {
+    const min = this.toNumber(this.executeNode(node.min, env));
+    const max = this.toNumber(this.executeNode(node.max, env));
+
+    if (isNaN(min) || isNaN(max)) {
+      throw new Error(`[Runtime Error] Аргументы rand() должны быть числами.`);
+    }
+    if  (min > max) {
+      throw new Error(`[Runtime Error] rand(min, max): min не может быть больше max.`);
+    }
+
+    return Math.floor(Math.random() * (max - min + 1) + min);
+  }
   //Вспомогательные методы.
 
   private expectArgs(
@@ -471,7 +488,7 @@ export class Interpreter {
     if (args.length !== expected) {
       throw new Error(
         `[Runtime Error] Функция '${name}' ожидает ` +
-        `${expected} аргумент(ов), получено ${args.length}`
+        `${expected} аргумент(ов), получено ${args.length}.`
       );
     }
   }
@@ -490,7 +507,7 @@ export class Interpreter {
         if (isNaN(num)) {
           throw new Error(
             `[Runtime Error] Невозможно преобразовать ` +
-            `'${value}' в int для переменной '${varName}'`
+            `'${value}' в int для переменной '${varName}'.`
           );
         }
         return Math.floor(num);
@@ -500,7 +517,7 @@ export class Interpreter {
         if (isNaN(num)) {
           throw new Error(
             `[Runtime Error] Невозможно преобразовать ` +
-            `'${value}' в float для переменной '${varName}'`
+            `'${value}' в float для переменной '${varName}'.`
           );
         }
         return num;
@@ -526,7 +543,7 @@ export class Interpreter {
       const n = Number(value);
       if (isNaN(n)) {
         throw new Error(
-          `[Runtime Error] Невозможно преобразовать '${value}' в число`
+          `[Runtime Error] Невозможно преобразовать '${value}' в число.`
         );
       }
       return n;
