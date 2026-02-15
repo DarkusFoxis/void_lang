@@ -34,8 +34,8 @@ const colors = {
 function printBanner(): void {
   console.log(colors.cyan(`
   ╔══════════════════════════════════╗
-  ║     🌀 Void Language v1.0.0     ║
-  ║     Interpreter by TypeScript   ║
+  ║     🌀 Void Language v1.0.1      ║
+  ║     Interpreter by TypeScript    ║
   ╚══════════════════════════════════╝
   `));
 }
