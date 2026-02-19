@@ -1,0 +1,35 @@
+@VoidApp "TestArrays";
+
+main() {
+  //Списки.
+  create:list nums = [1, 2, 3, "hello", true];
+  echo("Список:", nums);
+  echo("Первый:", nums[0]);
+  echo("Последний:", nums[-1]);
+  
+  nums.add:list("world");
+  echo("После add:", nums);
+  
+  nums.delete:list(0);
+  echo("После delete[0]:", nums);
+  
+  echo("Длина:", length(nums));
+  echo("Содержит hello:", contains(nums, "hello"));
+  
+  //Словари.
+  create:dict info = {"name":"Void", "version":1};
+  echo("Словарь:", info);
+  echo("Имя:", info["name"]);
+  
+  info.add:dict("author":"Dev");
+  echo("После add:", info);
+  
+  info.delete:dict("version");
+  echo("После delete:", info);
+  
+  //Очистка.
+  nums.clear:list();
+  echo("После clear:", nums);
+}
+
+@VoidEnd;

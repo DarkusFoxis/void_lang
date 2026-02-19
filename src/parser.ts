@@ -1,8 +1,7 @@
-// Парсер: строит AST из токенов.
-
+//Парсер: строит AST из токенов.
 import { Token, TokenType } from "./tokens";
 
-// Узлы AST.
+//Узлы AST.
 
 export type ASTNode =
   | ProgramNode
@@ -26,7 +25,11 @@ export type ASTNode =
   | BoolLiteralNode
   | IdentifierNode
   | FunctionCallNode
-  | RandCallNode;
+  | RandCallNode
+  | ListLiteralNode
+  | DictLiteralNode
+  | IndexAccessNode
+  | MethodCallNode;
 
 export interface ProgramNode {
   type: "Program";
@@ -153,7 +156,32 @@ export interface RandCallNode {
   max: ASTNode;
 }
 
-// Парсер
+//Новые узлы для списков и словарей.
+export interface ListLiteralNode {
+  type: "ListLiteral";
+  elements: ASTNode[];
+}
+
+export interface DictLiteralNode {
+  type: "DictLiteral";
+  entries: { key: ASTNode; value: ASTNode }[];
+}
+
+export interface IndexAccessNode {
+  type: "IndexAccess";
+  object: ASTNode;
+  index: ASTNode;
+}
+
+export interface MethodCallNode {
+  type: "MethodCall";
+  object: string;         //Имя переменной.
+  method: string;         //"add" | "delete" | "clear"
+  collectionType: string; //"list" | "dict"
+  args: ASTNode[];
+}
+
+//Парсер.
 
 export class Parser {
   private tokens: Token[];
@@ -220,7 +248,7 @@ export class Parser {
     );
   }
 
-  // Парсинг программы
+  //Парсинг программы.
 
   public parse(): ProgramNode {
     const program: ProgramNode = {
@@ -298,7 +326,7 @@ export class Parser {
     return { type: "Block", statements };
   }
 
-  // Парсинг инструкций
+  //Парсинг инструкций.
 
   private parseStatement(): ASTNode {
     const token = this.current();
@@ -353,9 +381,11 @@ export class Parser {
       case TokenType.TYPE_INT: varType = "int"; break;
       case TokenType.TYPE_FLOAT: varType = "float"; break;
       case TokenType.TYPE_BOOL: varType = "bool"; break;
+      case TokenType.TYPE_LIST: varType = "list"; break;
+      case TokenType.TYPE_DICT: varType = "dict"; break;
       default:
         this.error(
-          `Ожидался тип переменной (string/int/float/bool), ` +
+          `Ожидался тип переменной (string/int/float/bool/list/dict), ` +
           `получено: '${typeToken.value}'`
         );
         return null as never;
@@ -369,8 +399,6 @@ export class Parser {
     this.expect(TokenType.ASSIGN);
     const value = this.parseExpression();
 
-    //Точка в конце (согласно синтаксису: create:type name = data.).
-    //Но также поддержим точку с запятой для удобства.
     if (this.check(TokenType.SEMICOLON)) {
       this.advance();
     } else {
@@ -385,9 +413,77 @@ export class Parser {
     };
   }
 
-  //Идентификатор: присваивание или вызов функции.
+  //Идентификатор: присваивание, вызов функции или вызов метода.
   private parseIdentifierStatement(): ASTNode {
     const name = this.advance(); //Идентификатор.
+
+    //Вызов метода: name.add:list(...); name.delete:dict(...); name.clear:list();
+    if (this.check(TokenType.DOT)) {
+      this.advance(); // пропускаем '.'.
+
+      //Ожидаем имя метода (add, delete, clear).
+      const methodToken = this.current();
+      let method: string;
+      if (methodToken.type === TokenType.ADD) {
+        method = "add";
+      } else if (methodToken.type === TokenType.DELETE) {
+        method = "delete";
+      } else if (methodToken.type === TokenType.CLEAR) {
+        method = "clear";
+      } else {
+        this.error(`Ожидался метод (add/delete/clear), получено: '${methodToken.value}'`);
+        return null as never;
+      }
+      this.advance();
+
+      //Ожидаем ':' и тип коллекции.
+      this.expect(TokenType.COLON, 'После имени метода ожидается ":"');
+      const collTypeToken = this.current();
+      let collectionType: string;
+      if (collTypeToken.type === TokenType.TYPE_LIST) {
+        collectionType = "list";
+      } else if (collTypeToken.type === TokenType.TYPE_DICT) {
+        collectionType = "dict";
+      } else {
+        this.error(`Ожидался тип коллекции (list/dict), получено: '${collTypeToken.value}'`);
+        return null as never;
+      }
+      this.advance();
+
+      //Аргументы в скобках.
+      this.expect(TokenType.LPAREN);
+      const args: ASTNode[] = [];
+
+      if (!this.check(TokenType.RPAREN)) {
+        //Для add:dict ожидаем key:value
+        //Для add:list ожидаем value
+        //Для delete:list ожидаем index
+        //Для delete:dict ожидаем key
+        //Для clear — пусто.
+        args.push(this.parseExpression());
+
+        // Для add:dict — парсим ":" и значение внутри скобок
+        if (method === "add" && collectionType === "dict" && this.check(TokenType.COLON)) {
+          this.advance(); // пропускаем ':'
+          args.push(this.parseExpression());
+        }
+
+        while (this.match(TokenType.COMMA)) {
+          args.push(this.parseExpression());
+        }
+      }
+
+      this.expect(TokenType.RPAREN);
+      this.expect(TokenType.SEMICOLON);
+
+      return {
+        type: "MethodCall",
+        object: name.value,
+        method,
+        collectionType,
+        args,
+      } as MethodCallNode;
+    }
 
     //Присваивание: name = expr;
     if (this.check(TokenType.ASSIGN)) {
@@ -399,6 +495,22 @@ export class Parser {
         name: name.value,
         value,
       } as AssignVarNode;
+    }
+
+    //Присваивание по индексу: name[index] = expr;
+    if (this.check(TokenType.LBRACKET)) {
+      this.advance(); // '['
+      const index = this.parseExpression();
+      this.expect(TokenType.RBRACKET);
+      this.expect(TokenType.ASSIGN);
+      const value = this.parseExpression();
+      this.expect(TokenType.SEMICOLON);
+      return {
+        type: "AssignVar",
+        name: `${name.value}[]`,
+        value,
+        //Сохраняем дополнительные данные через хак — создадим отдельный узел.
+      } as any; //Мы обработаем это иначе — см. ниже.
     }
 
     //Вызов функции: name(args);
@@ -471,48 +583,47 @@ export class Parser {
   }
 
   //for (init; condition; update) { ... }
-private parseFor(): ForNode {
-  this.expect(TokenType.FOR);
-  this.expect(TokenType.LPAREN);
+  private parseFor(): ForNode {
+    this.expect(TokenType.FOR);
+    this.expect(TokenType.LPAREN);
 
-  //init
-  let init: ASTNode | null = null;
-  if (this.check(TokenType.CREATE)) {
-    init = this.parseCreateVar();
-  } else if (!this.check(TokenType.SEMICOLON)) {
-    const name = this.expect(TokenType.IDENTIFIER);
-    this.expect(TokenType.ASSIGN);
-    const value = this.parseExpression();
+    //init
+    let init: ASTNode | null = null;
+    if (this.check(TokenType.CREATE)) {
+      init = this.parseCreateVar();
+    } else if (!this.check(TokenType.SEMICOLON)) {
+      const name = this.expect(TokenType.IDENTIFIER);
+      this.expect(TokenType.ASSIGN);
+      const value = this.parseExpression();
+      this.expect(TokenType.SEMICOLON);
+      init = { type: "AssignVar", name: name.value, value } as AssignVarNode;
+    } else {
+      this.advance(); //Пропускаем ';' (пустой init).
+    }
+
+    //condition
+    let condition: ASTNode;
+    if (this.check(TokenType.SEMICOLON)) {
+      condition = { type: "BoolLiteral", value: true };
+    } else {
+      condition = this.parseExpression();
+    }
     this.expect(TokenType.SEMICOLON);
-    init = { type: "AssignVar", name: name.value, value } as AssignVarNode;
-  } else {
-    this.advance(); //Пропускаем ';' (пустой init).
+
+    //update
+    let update: ASTNode | null = null;
+    if (!this.check(TokenType.RPAREN)) {
+      const name = this.expect(TokenType.IDENTIFIER);
+      this.expect(TokenType.ASSIGN);
+      const value = this.parseExpression();
+      update = { type: "AssignVar", name: name.value, value } as AssignVarNode;
+    }
+
+    this.expect(TokenType.RPAREN);
+    const body = this.parseBlock();
+
+    return { type: "For", init, condition, update, body };
   }
-
-  //condition
-  let condition: ASTNode;
-  if (this.check(TokenType.SEMICOLON)) {
-    //Пустое условие -> true.
-    condition = { type: "BoolLiteral", value: true };
-  } else {
-    condition = this.parseExpression();
-  }
-  this.expect(TokenType.SEMICOLON); //Хаваем ';' после условия.
-
-  //update
-  let update: ASTNode | null = null;
-  if (!this.check(TokenType.RPAREN)) {
-    const name = this.expect(TokenType.IDENTIFIER);
-    this.expect(TokenType.ASSIGN);
-    const value = this.parseExpression();
-    update = { type: "AssignVar", name: name.value, value } as AssignVarNode;
-  }
-
-  this.expect(TokenType.RPAREN);
-  const body = this.parseBlock();
-
-  return { type: "For", init, condition, update, body };
-}
 
   //Парсинг выражений (приоритет операторов).
 
@@ -606,7 +717,7 @@ private parseFor(): ForNode {
     let left = this.parseUnary();
     if (this.check(TokenType.POWER)) {
       const op = this.advance().value;
-      const right = this.parsePower(); //правоассоциативность.
+      const right = this.parsePower();
       left = { type: "BinaryExpr", operator: op, left, right };
     }
     return left;
@@ -624,7 +735,26 @@ private parseFor(): ForNode {
       const operand = this.parseUnary();
       return { type: "UnaryExpr", operator: op, operand };
     }
-    return this.parsePrimary();
+    return this.parsePostfix();
+  }
+
+  //Постфиксные операции: индексация [expr]
+  private parsePostfix(): ASTNode {
+    let node = this.parsePrimary();
+
+    //Обрабатываем цепочки индексации: Variable[0], Dict["key"] и т.д.
+    while (this.check(TokenType.LBRACKET)) {
+      this.advance(); // '['.
+      const index = this.parseExpression();
+      this.expect(TokenType.RBRACKET);
+      node = {
+        type: "IndexAccess",
+        object: node,
+        index,
+      } as IndexAccessNode;
+    }
+
+    return node;
   }
 
   //Первичные выражения.
@@ -647,6 +777,14 @@ private parseFor(): ForNode {
       case TokenType.BOOL_LITERAL:
         this.advance();
         return { type: "BoolLiteral", value: token.value === "true" };
+
+      //Литерал списка: [1, 2, 3]
+      case TokenType.LBRACKET:
+        return this.parseListLiteral();
+
+      //Литерал словаря: {"key":"value", ...}
+      case TokenType.LBRACE:
+        return this.parseDictLiteral();
 
       case TokenType.IDENTIFIER: {
         const name = this.advance();
@@ -680,6 +818,45 @@ private parseFor(): ForNode {
         this.error(`Неожиданный токен в выражении: '${token.value}'`);
         return null as never;
     }
+  }
+
+  //Парсинг литерала списка: [expr, expr, ...]
+  private parseListLiteral(): ListLiteralNode {
+    this.expect(TokenType.LBRACKET);
+    const elements: ASTNode[] = [];
+
+    if (!this.check(TokenType.RBRACKET)) {
+      elements.push(this.parseExpression());
+      while (this.match(TokenType.COMMA)) {
+        elements.push(this.parseExpression());
+      }
+    }
+
+    this.expect(TokenType.RBRACKET);
+    return { type: "ListLiteral", elements };
+  }
+
+  //Парсинг литерала словаря: {key:value, key:value, ...}
+  private parseDictLiteral(): DictLiteralNode {
+    this.expect(TokenType.LBRACE);
+    const entries: { key: ASTNode; value: ASTNode }[] = [];
+
+    if (!this.check(TokenType.RBRACE)) {
+      const key = this.parseExpression();
+      this.expect(TokenType.COLON, 'В словаре ожидается ":" между ключом и значением');
+      const value = this.parseExpression();
+      entries.push({ key, value });
+
+      while (this.match(TokenType.COMMA)) {
+        const k = this.parseExpression();
+        this.expect(TokenType.COLON, 'В словаре ожидается ":" между ключом и значением');
+        const v = this.parseExpression();
+        entries.push({ key: k, value: v });
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return { type: "DictLiteral", entries };
   }
 
   //write("prompt") — выражение ввода.

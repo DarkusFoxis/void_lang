@@ -1,5 +1,4 @@
 //Лексер: разбивает исходный код на токены.
-
 import { Token, TokenType, createToken } from "./tokens";
 
 export class Lexer {
@@ -27,6 +26,11 @@ export class Lexer {
     ["true", TokenType.BOOL_LITERAL],
     ["false", TokenType.BOOL_LITERAL],
     ["rand", TokenType.RAND],
+    ["list", TokenType.TYPE_LIST],
+    ["dict", TokenType.TYPE_DICT],
+    ["add", TokenType.ADD],
+    ["delete", TokenType.DELETE],
+    ["clear", TokenType.CLEAR],
   ]);
 
   constructor(source: string) {
@@ -130,8 +134,6 @@ export class Lexer {
     let value = "";
     let isFloat = false;
 
-    //Отрицательные числа обрабатываются в парсере как унарный минус.
-
     while (this.pos < this.source.length && this.isDigit(this.current())) {
       value += this.advance();
     }
@@ -204,7 +206,6 @@ export class Lexer {
         this.error(`Неизвестная директива: ${value}`, startLine, startCol);
     }
 
-    //Для TypeScript (unreachable).
     return createToken(TokenType.EOF, "", startLine, startCol);
   }
 
@@ -235,7 +236,7 @@ export class Lexer {
     );
   }
 
-  // Основной метод токенизации
+  //Основной метод токенизации.
   public tokenize(): Token[] {
     this.tokens = [];
 
@@ -409,6 +410,24 @@ export class Lexer {
           this.advance();
           this.tokens.push(
             createToken(TokenType.RBRACE, "}", startLine, startCol)
+          );
+          break;
+        case "[":
+          this.advance();
+          this.tokens.push(
+            createToken(TokenType.LBRACKET, "[", startLine, startCol)
+          );
+          break;
+        case "]":
+          this.advance();
+          this.tokens.push(
+            createToken(TokenType.RBRACKET, "]", startLine, startCol)
+          );
+          break;
+        case ".":
+          this.advance();
+          this.tokens.push(
+            createToken(TokenType.DOT, ".", startLine, startCol)
           );
           break;
         case ";":

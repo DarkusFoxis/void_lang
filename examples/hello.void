@@ -1,10 +1,7 @@
 @VoidApp "HelloWorld";
-using style "Abyss";
-
 main()
 {
     echo("Hello, Abyss!");
     echo("Добро пожаловать в Void Language!");
 }
-
 @VoidEnd;

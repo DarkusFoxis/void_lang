@@ -1,0 +1,10 @@
+@VoidApp "Infinity";
+
+main  () {
+    for ( ; ; )
+    {
+        echo("True");
+    }
+}
+
+@VoidEnd;

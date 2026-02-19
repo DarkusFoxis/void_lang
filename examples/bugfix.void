@@ -1,0 +1,9 @@
+@VoidApp "TestBug";
+
+main() {
+    create:bool v = 1;
+    create:bool d = v == 1;
+    echo (v, d);
+}
+
+@VoidEnd;

@@ -69,6 +69,9 @@ export enum TokenType {
   SEMICOLON = "SEMICOLON",         //;
   COMMA = "COMMA",                 //,
   COLON = "COLON",                 //:
+  LBRACKET = "LBRACKET",           //[
+  RBRACKET = "RBRACKET",           //]
+  DOT = "DOT",                     //.
 
   //Специальные.
   EOF = "EOF",
