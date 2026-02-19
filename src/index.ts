@@ -34,7 +34,7 @@ const colors = {
 function printBanner(): void {
   console.log(colors.cyan(`
   ╔══════════════════════════════════╗
-  ║     🌀 Void Language v1.0.1      ║
+  ║     🌀 Void Language v1.0.2      ║
   ║     Interpreter by TypeScript    ║
   ╚══════════════════════════════════╝
   `));
@@ -122,10 +122,10 @@ ${colors.bold("Синтаксис Void:")}
     @VoidEnd;
 
   ${colors.cyan("Переменные:")}
-    create:string name = "значение".
-    create:int age = 25.
-    create:float pi = 3.14.
-    create:bool flag = true.
+    create:string name = "значение";
+    create:int age = 25;
+    create:float pi = 3.14;
+    create:bool flag = true;
 
   ${colors.cyan("Ввод/вывод:")}
     echo("Hello, World!");
@@ -144,13 +144,15 @@ ${colors.bold("Синтаксис Void:")}
     if (условие) { ... } else { ... }
     while (условие) { ... }
     for (init; condition; update) { ... }
+    Так же разрешается указание:
+    for (; ;) {...}
 
   ${colors.cyan("Комментарии:")}
     // Однострочный
     #* Многострочный *#
 
   ${colors.cyan("Встроенные функции:")}
-    abs, sqrt, floor, ceil, round, min, max, random
+    abs, sqrt, floor, ceil, round, min, max, random, rand
     toInt, toFloat, toString, toBool
     length, upper, lower, trim, contains
   `);

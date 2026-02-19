@@ -471,44 +471,50 @@ export class Parser {
   }
 
   //for (init; condition; update) { ... }
-  private parseFor(): ForNode {
-    this.expect(TokenType.FOR);
-    this.expect(TokenType.LPAREN);
+private parseFor(): ForNode {
+  this.expect(TokenType.FOR);
+  this.expect(TokenType.LPAREN);
 
-    //init.
-    let init: ASTNode | null = null;
-    if (this.check(TokenType.CREATE)) {
-      init = this.parseCreateVar();
-    } else if (!this.check(TokenType.SEMICOLON)) {
-      const name = this.expect(TokenType.IDENTIFIER);
-      this.expect(TokenType.ASSIGN);
-      const value = this.parseExpression();
-      this.expect(TokenType.SEMICOLON);
-      init = { type: "AssignVar", name: name.value, value } as AssignVarNode;
-    } else {
-      this.advance(); //пропускаем ;
-    }
-
-    //condition.
-    const condition = this.parseExpression();
+  //init
+  let init: ASTNode | null = null;
+  if (this.check(TokenType.CREATE)) {
+    init = this.parseCreateVar();
+  } else if (!this.check(TokenType.SEMICOLON)) {
+    const name = this.expect(TokenType.IDENTIFIER);
+    this.expect(TokenType.ASSIGN);
+    const value = this.parseExpression();
     this.expect(TokenType.SEMICOLON);
-
-    //update.
-    let update: ASTNode | null = null;
-    if (!this.check(TokenType.RPAREN)) {
-      const name = this.expect(TokenType.IDENTIFIER);
-      this.expect(TokenType.ASSIGN);
-      const value = this.parseExpression();
-      update = { type: "AssignVar", name: name.value, value } as AssignVarNode;
-    }
-
-    this.expect(TokenType.RPAREN);
-    const body = this.parseBlock();
-
-    return { type: "For", init, condition, update, body };
+    init = { type: "AssignVar", name: name.value, value } as AssignVarNode;
+  } else {
+    this.advance(); //Пропускаем ';' (пустой init).
   }
 
-  // Парсинг выражений (приоритет операторов).
+  //condition
+  let condition: ASTNode;
+  if (this.check(TokenType.SEMICOLON)) {
+    //Пустое условие -> true.
+    condition = { type: "BoolLiteral", value: true };
+  } else {
+    condition = this.parseExpression();
+  }
+  this.expect(TokenType.SEMICOLON); //Хаваем ';' после условия.
+
+  //update
+  let update: ASTNode | null = null;
+  if (!this.check(TokenType.RPAREN)) {
+    const name = this.expect(TokenType.IDENTIFIER);
+    this.expect(TokenType.ASSIGN);
+    const value = this.parseExpression();
+    update = { type: "AssignVar", name: name.value, value } as AssignVarNode;
+  }
+
+  this.expect(TokenType.RPAREN);
+  const body = this.parseBlock();
+
+  return { type: "For", init, condition, update, body };
+}
+
+  //Парсинг выражений (приоритет операторов).
 
   private parseExpression(): ASTNode {
     return this.parseOr();

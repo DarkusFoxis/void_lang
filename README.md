@@ -1,6 +1,6 @@
 # 📖 Void Language — Полная документация
 
-## Версия 1.0.1
+## Версия 1.0.2
 
 ---
 
@@ -343,7 +343,7 @@ main()
     
     create:int i = 1;
     create:int sum = 0;
-    while (i <= 100) { sum = sum + i. i = i + 1; }
+    while (i <= 100) { sum = sum + i; i = i + 1; }
     echo("Сумма 1..100:", sum);
 }
 
@@ -422,7 +422,7 @@ using style "Ocean";
 
 main()
 {
-    create:string wave = "Привет".
+    create:string wave = "Привет";
 
     create:int depth = 1;
     while (depth <= 5)
@@ -430,8 +430,8 @@ main()
         create:string current = wave + " ~";
         echo(current);
 
-        wave = current.
-        depth = depth + 1.
+        wave = current;
+        depth = depth + 1;
     }
 
     echo("");
@@ -595,7 +595,7 @@ create:string quote = "Он сказал: \"Привет!\"";
 ```
 create:string first = "Hello";
 create:string second = " World";
-create:string result = first + second.  // "Hello World";
+create:string result = first + second;  // "Hello World";
 ```
 
 **Конкатенация с другими типами:**
@@ -645,8 +645,8 @@ create:float small = 0.001;
 Значения `true` (истина) или `false` (ложь).
 
 ```
-create:bool isActive = true.
-create:bool hasError = false.
+create:bool isActive = true;
+create:bool hasError = false;
 ```
 
 **Таблица истинности для приведения:**
@@ -1663,7 +1663,7 @@ main()
     echo("");
     for (create:int i = 1; i <= height; i = i + 1)
     {
-        create:string line = "".
+        create:string line = "";
         
         // Пробелы
         for (create:int s = 0; s < height - i; s = s + 1)
@@ -1856,4 +1856,4 @@ main()
 
 ---
 
-> **Void Language v1.0.1** — Из пустоты рождается код. 🌀
+> **Void Language v1.0.2** — Из пустоты рождается код. 🌀

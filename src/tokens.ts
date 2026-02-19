@@ -4,6 +4,8 @@ export enum TokenType {
   //Ключевые слова и директивы.
   VOID_APP = "VOID_APP",           //@VoidApp
   VOID_END = "VOID_END",           //@VoidEnd
+  VOID_FUNC = "VOID_FUNC",         //@VoidFuncion
+  VOID_IMPORT = "VOID_IMPORT",     //@VoidImport
   USING = "USING",                 //using
   STYLE = "STYLE",                 //style
   MAIN = "MAIN",                   //main
@@ -15,12 +17,18 @@ export enum TokenType {
   WHILE = "WHILE",                 //while
   FOR = "FOR",                     //for
   RAND = "RAND",                   //rand
+  ADD  = "ADD",                    //add
+  DELETE = "DELETE",               //delete
+  CLEAR  = "CLEAR",                //clear
 
   //Типы данных.
   TYPE_STRING = "TYPE_STRING",     //string
   TYPE_INT = "TYPE_INT",           //int
   TYPE_FLOAT = "TYPE_FLOAT",       //float
   TYPE_BOOL = "TYPE_BOOL",         //bool
+  TYPE_VOID = "TYPE_VOID",         //void
+  TYPE_LIST = "TYPE_LIST",         //list
+  TYPE_DICT = "TYPE_DICT",         //dict
 
   //Литералы.
   STRING_LITERAL = "STRING_LITERAL",

@@ -169,6 +169,25 @@ export class Interpreter {
     }
   }
 
+  // Умное сравнение с приведением типов bool ↔ number.
+  private areEqual(left: VoidValue, right: VoidValue): boolean {
+      // Одинаковые типы — сравниваем напрямую
+      if (typeof left === typeof right) {
+          return left === right;
+      }
+
+      //bool и number — приводим оба к number.
+      if (
+          (typeof left === "boolean" || typeof left === "number") &&
+          (typeof right === "boolean" || typeof right === "number")
+      ) {
+          return this.toNumber(left) === this.toNumber(right);
+      }
+
+      //Разные типы — сравниваем как строки.
+      return this.stringify(left) === this.stringify(right);
+  }
+
   //main() { ... }
   private executeMain(node: MainNode, env: Environment): VoidValue {
     return this.executeBlock(node.body, env);
@@ -335,9 +354,9 @@ export class Interpreter {
 
       //Сравнение.
       case "==":
-        return left === right;
+        return this.areEqual(left, right);
       case "!=":
-        return left !== right;
+        return !this.areEqual(left, right);
       case "<":
         return this.toNumber(left) < this.toNumber(right);
       case ">":
