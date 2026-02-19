@@ -13,6 +13,7 @@ export type ASTNode =
   | EchoNode
   | WriteNode
   | CreateVarNode
+  | MultiCreateNode          
   | AssignVarNode
   | IfNode
   | WhileNode
@@ -76,7 +77,12 @@ export interface CreateVarNode {
   type: "CreateVar";
   varType: string;
   name: string;
-  value: ASTNode;
+  initializer?: ASTNode;
+}
+
+export interface MultiCreateNode {
+  type: "MultiCreate";
+  declarations: CreateVarNode[];
 }
 
 export interface AssignVarNode {
@@ -370,46 +376,46 @@ export class Parser {
   }
 
   //create:type name = value;
-  private parseCreateVar(): CreateVarNode {
-    this.expect(TokenType.CREATE);
+  private parseCreateVar(): MultiCreateNode {
+    this.expect(TokenType.CREATE); //"create:"
 
-    //Тип переменной.
+    //Определяем тип.
     const typeToken = this.current();
     let varType: string;
     switch (typeToken.type) {
       case TokenType.TYPE_STRING: varType = "string"; break;
-      case TokenType.TYPE_INT: varType = "int"; break;
-      case TokenType.TYPE_FLOAT: varType = "float"; break;
-      case TokenType.TYPE_BOOL: varType = "bool"; break;
-      case TokenType.TYPE_LIST: varType = "list"; break;
-      case TokenType.TYPE_DICT: varType = "dict"; break;
+      case TokenType.TYPE_INT:    varType = "int"; break;
+      case TokenType.TYPE_FLOAT:  varType = "float"; break;
+      case TokenType.TYPE_BOOL:   varType = "bool"; break;
+      case TokenType.TYPE_LIST:   varType = "list"; break;
+      case TokenType.TYPE_DICT:   varType = "dict"; break;
       default:
-        this.error(
-          `Ожидался тип переменной (string/int/float/bool/list/dict), ` +
-          `получено: '${typeToken.value}'`
-        );
-        return null as never;
+        this.error(`Ожидался тип переменной, получено: '${typeToken.value}'`);
     }
-    this.advance();
+    this.advance(); //Пропускаем токен типа.
 
-    //Имя переменной.
-    const nameToken = this.expect(TokenType.IDENTIFIER);
+    const declarations: CreateVarNode[] = [];
 
-    //= значение.
-    this.expect(TokenType.ASSIGN);
-    const value = this.parseExpression();
+    //Парсим список переменных (минимум одна)
+    do {
+      const nameToken = this.expect(TokenType.IDENTIFIER, "Ожидается имя переменной");
+      let initializer: ASTNode | undefined = undefined;
+      if (this.match(TokenType.ASSIGN)) {
+        initializer = this.parseExpression();
+      }
+      declarations.push({
+        type: "CreateVar",
+        varType,
+        name: nameToken.value,
+        initializer,
+      });
+    } while (this.match(TokenType.COMMA)); //Продолжаем, если есть запятая.
 
-    if (this.check(TokenType.SEMICOLON)) {
-      this.advance();
-    } else {
-      this.error('После объявления переменной ожидается ";"');
-    }
+    this.expect(TokenType.SEMICOLON, "После объявления переменных ожидается ';'");
 
     return {
-      type: "CreateVar",
-      varType,
-      name: nameToken.value,
-      value,
+      type: "MultiCreate",
+      declarations,
     };
   }
 
@@ -590,7 +596,11 @@ export class Parser {
     //init
     let init: ASTNode | null = null;
     if (this.check(TokenType.CREATE)) {
-      init = this.parseCreateVar();
+      const multi = this.parseCreateVar();
+    if (multi.declarations.length !== 1) {
+      this.error("В инициализаторе for допускается только одно объявление переменной");
+    }
+      init = multi.declarations[0]; // берём единственное объявление как CreateVarNode
     } else if (!this.check(TokenType.SEMICOLON)) {
       const name = this.expect(TokenType.IDENTIFIER);
       this.expect(TokenType.ASSIGN);

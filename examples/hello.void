@@ -1,7 +1,10 @@
 @VoidApp "HelloWorld";
 main()
 {
-    echo("Hello, Abyss!");
-    echo("Добро пожаловать в Void Language!");
+    create:string hi, hello;
+    hi = "Hello, World!";
+    hello = "Привет, мир!";
+    echo(hi);
+    echo(hello);
 }
 @VoidEnd;

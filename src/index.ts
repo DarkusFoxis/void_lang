@@ -34,7 +34,7 @@ const colors = {
 function printBanner(): void {
   console.log(colors.cyan(`
   ╔══════════════════════════════════╗
-  ║     🌀 Void Language v1.1        ║
+  ║     🌀 Void Language v1.1.1     ║
   ║     Interpreter by TypeScript    ║
   ╚══════════════════════════════════╝
   `));
@@ -179,7 +179,7 @@ function main(): void {
       break;
     case "--version":
     case "-v":
-      console.log("Void Language v1.1");
+      console.log("Void Language v1.1.1");
       break;
     default:
       printBanner();

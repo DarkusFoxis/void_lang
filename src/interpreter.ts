@@ -7,6 +7,7 @@ import {
   EchoNode,
   WriteNode,
   CreateVarNode,
+  MultiCreateNode,
   AssignVarNode,
   IfNode,
   WhileNode,
@@ -159,6 +160,8 @@ export class Interpreter {
         return this.executeWrite(node as WriteNode, env);
       case "CreateVar":
         return this.executeCreateVar(node as CreateVarNode, env);
+      case "MultiCreate":
+        return this.executeMultiCreate(node as MultiCreateNode, env);
       case "AssignVar":
         return this.executeAssignVar(node as AssignVarNode, env);
       case "If":
@@ -254,31 +257,45 @@ export class Interpreter {
   }
 
   //create:type name = value.
-  private executeCreateVar(
-    node: CreateVarNode,
-    env: Environment
-  ): VoidValue {
-    let value = this.executeNode(node.value, env);
+  private executeCreateVar(node: CreateVarNode, env: Environment): VoidValue {
+    let value: VoidValue;
 
-    //Приведение типов (для list и dict не приводим).
+    if (node.initializer) {
+      value = this.executeNode(node.initializer, env);
+    } else {
+      //Значения по умолчанию.
+      switch (node.varType) {
+        case "string": value = ""; break;
+        case "int":    value = 0; break;
+        case "float":  value = 0.0; break;
+        case "bool":   value = false; break;
+        case "list":   value = []; break;
+        case "dict":   value = createVoidDict(); break;
+        default:       value = null;
+      }
+    }
+
+    //Приведение типа (как и раньше).
     if (node.varType !== "list" && node.varType !== "dict") {
       value = this.castValue(value, node.varType, node.name);
     } else {
-      //Валидация типа.
       if (node.varType === "list" && !Array.isArray(value)) {
-        throw new Error(
-          `[Runtime Error] Переменная '${node.name}' типа list ожидает список, получено: ${this.stringify(value)}`
-        );
+        throw new Error(`Переменная '${node.name}' типа list ожидает список, получено: ${this.stringify(value)}`);
       }
       if (node.varType === "dict" && !isVoidDict(value)) {
-        throw new Error(
-          `[Runtime Error] Переменная '${node.name}' типа dict ожидает словарь, получено: ${this.stringify(value)}`
-        );
+        throw new Error(`Переменная '${node.name}' типа dict ожидает словарь, получено: ${this.stringify(value)}`);
       }
     }
 
     env.define(node.name, node.varType, value);
     return value;
+  }
+
+  private executeMultiCreate(node: MultiCreateNode, env: Environment): VoidValue {
+    for (const decl of node.declarations) {
+      this.executeCreateVar(decl, env);
+    }
+    return null;
   }
 
   //name = value;
