@@ -1,0 +1,21 @@
+@VoidApp "GuessGame";
+main()
+{
+    echo("=== Угадай число! ===");
+    create:int secret = rand(1, 100);
+    create:int attempts = 0;
+    create:bool guessed = false;
+    while (!guessed) {
+        create:int guess = toInt(write("Ваша догадка (1-100): "));
+        attempts = attempts + 1;
+        if (guess == secret) {
+            guessed = true;
+            echo("Правильно! Вы угадали за", attempts, "попыток!");
+        } else if (guess < secret) {
+            echo("Больше!");
+        } else {
+            echo("Меньше!");
+        }
+    }
+}
+@VoidEnd;

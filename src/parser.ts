@@ -813,6 +813,8 @@ export class Parser {
         this.expect(TokenType.RPAREN);
         return expr;
       }
+      case TokenType.RAND:
+        return this.parseRandCall();
 
       default:
         this.error(`Неожиданный токен в выражении: '${token.value}'`);
@@ -866,5 +868,15 @@ export class Parser {
     const prompt = this.parseExpression();
     this.expect(TokenType.RPAREN);
     return { type: "Write", prompt };
+  }
+
+  private parseRandCall(): RandCallNode {
+    this.expect(TokenType.RAND);
+    this.expect(TokenType.LPAREN);
+    const min = this.parseExpression();
+    this.expect(TokenType.COMMA);
+    const max = this.parseExpression();
+    this.expect(TokenType.RPAREN);
+    return { type: "RandCall", min, max };
   }
 }
