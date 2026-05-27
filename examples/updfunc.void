@@ -1,0 +1,94 @@
+@VoidApp "Демонстрация ссылок и функций";
+using style "Modern";
+
+//Функция обмена значений через ссылки
+@VoidFunction create:void swap(create:link a, create:link b) {
+    create:int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+//Функция для инкремента значения по ссылке
+@VoidFunction create:void increment(create:link ptr, create:int amount) {
+    *ptr += amount;
+}
+
+//Функция вычисления суммы элементов массива
+@VoidFunction create:int sumArray(create:list numbers) {
+    create:int total = 0;
+    create:int i = 0;
+    while (i < length(numbers)) {
+        total += numbers[i];
+        i++;
+    }
+    return total;
+}
+
+//Функция для умножения всех элементов массива на коэффициент
+@VoidFunction create:void multiplyArray(create:link arr, create:int factor) {
+    create:int i = 0;
+    while (i < length(*arr)) {
+        (*arr)[i] *= factor;
+        i++;
+    }
+}
+
+main() {
+    //Демонстрация ссылок и swap
+    echo("=== Обмен значений через ссылки ===");
+    create:int x = 10;
+    create:int y = 20;
+    echo("До обмена: x =", x, "y =", y);
+    swap(&x, &y);
+    echo("После обмена: x =", x, "y =", y);
+    echo("");
+    
+    //Демонстрация составных операторов
+    echo("=== Составные операторы присваивания ===");
+    create:int counter = 0;
+    counter += 5;
+    echo("counter += 5 =>", counter);
+    counter *= 2;
+    echo("counter *= 2 =>", counter);
+    counter -= 3;
+    echo("counter -= 3 =>", counter);
+    echo("");
+    
+    //Демонстрация ссылок с инкрементом
+    echo("=== Инкремент через ссылку ===");
+    create:int value = 100;
+    create:link ptr = &value;
+    echo("Исходное значение:", *ptr);
+    increment(ptr, 25);
+    echo("После increment(ptr, 25):", *ptr);
+    echo("");
+    
+    //Демонстрация работы с массивами
+    echo("=== Работа с массивами ===");
+    create:list numbers = [1, 2, 3, 4, 5];
+    echo("Исходный массив:", numbers);
+    create:int sum = sumArray(numbers);
+    echo("Сумма элементов:", sum);
+    
+    //Умножение массива через ссылку
+    create:link arrPtr = &numbers;
+    multiplyArray(arrPtr, 10);
+    echo("После умножения на 10:", numbers);
+    
+    //Использование составных операторов с массивами
+    numbers[0] += 100;
+    numbers[1] *= 5;
+    echo("После модификации элементов:", numbers);
+    echo("");
+    
+    //Демонстрация вложенных вызовов функций
+    echo("=== Вложенные вызовы ===");
+    create:int a = 5;
+    create:int b = 10;
+    increment(&a, 15);
+    increment(&b, a);
+    echo("a после increment(&a, 15):", a);
+    echo("b после increment(&b, a):", b);
+}
+
+@VoidEnd;

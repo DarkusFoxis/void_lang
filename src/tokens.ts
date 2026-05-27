@@ -1,10 +1,9 @@
 //Типы токенов для лексера.
-
 export enum TokenType {
   //Ключевые слова и директивы.
   VOID_APP = "VOID_APP",           //@VoidApp
   VOID_END = "VOID_END",           //@VoidEnd
-  VOID_FUNC = "VOID_FUNC",         //@VoidFuncion
+  VOID_FUNC = "VOID_FUNC",         //@VoidFunction
   VOID_IMPORT = "VOID_IMPORT",     //@VoidImport
   USING = "USING",                 //using
   STYLE = "STYLE",                 //style
@@ -17,10 +16,11 @@ export enum TokenType {
   WHILE = "WHILE",                 //while
   FOR = "FOR",                     //for
   RAND = "RAND",                   //rand
-  ADD  = "ADD",                    //add
+  ADD = "ADD",                     //add
   DELETE = "DELETE",               //delete
-  CLEAR  = "CLEAR",                //clear
-
+  CLEAR = "CLEAR",                 //clear
+  RETURN = "RETURN",               //return
+  
   //Типы данных.
   TYPE_STRING = "TYPE_STRING",     //string
   TYPE_INT = "TYPE_INT",           //int
@@ -29,25 +29,33 @@ export enum TokenType {
   TYPE_VOID = "TYPE_VOID",         //void
   TYPE_LIST = "TYPE_LIST",         //list
   TYPE_DICT = "TYPE_DICT",         //dict
-
+  TYPE_LINK = "TYPE_LINK",         //link
+  
   //Литералы.
   STRING_LITERAL = "STRING_LITERAL",
   INT_LITERAL = "INT_LITERAL",
   FLOAT_LITERAL = "FLOAT_LITERAL",
   BOOL_LITERAL = "BOOL_LITERAL",
-
+  
   //Идентификаторы.
   IDENTIFIER = "IDENTIFIER",
-
+  
   //Операторы.
   ASSIGN = "ASSIGN",               //=
+  PLUS_ASSIGN = "PLUS_ASSIGN",     //+=
+  MINUS_ASSIGN = "MINUS_ASSIGN",   //-=
+  MULTIPLY_ASSIGN = "MULTIPLY_ASSIGN", //*=
+  DIVIDE_ASSIGN = "DIVIDE_ASSIGN", ///=
   PLUS = "PLUS",                   //+
   MINUS = "MINUS",                 //-
   MULTIPLY = "MULTIPLY",           //*
   DIVIDE = "DIVIDE",               ///
   MODULO = "MODULO",               //%
   POWER = "POWER",                 //**
-
+  REFERENCE = "REFERENCE",         //&
+  INCREMENT = "INCREMENT",         //++
+  DECREMENT = "DECREMENT",         //--
+  
   //Операторы сравнения.
   EQUALS = "EQUALS",               //==
   NOT_EQUALS = "NOT_EQUALS",       //!=
@@ -55,12 +63,12 @@ export enum TokenType {
   GREATER = "GREATER",             //>
   LESS_EQ = "LESS_EQ",             //<=
   GREATER_EQ = "GREATER_EQ",       //>=
-
+  
   //Логические операторы.
   AND = "AND",                     //&&
   OR = "OR",                       //||
   NOT = "NOT",                     //!
-
+  
   //Разделители.
   LPAREN = "LPAREN",               //(
   RPAREN = "RPAREN",               //)
@@ -72,7 +80,7 @@ export enum TokenType {
   LBRACKET = "LBRACKET",           //[
   RBRACKET = "RBRACKET",           //]
   DOT = "DOT",                     //.
-
+  
   //Специальные.
   EOF = "EOF",
   NEWLINE = "NEWLINE",
