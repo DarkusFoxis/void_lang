@@ -5,6 +5,7 @@ export enum TokenType {
   VOID_END = "VOID_END",           //@VoidEnd
   VOID_FUNC = "VOID_FUNC",         //@VoidFunction
   VOID_IMPORT = "VOID_IMPORT",     //@VoidImport
+  VOID_SETTING = "VOID_SETTING",   //@VoidSetting
   USING = "USING",                 //using
   STYLE = "STYLE",                 //style
   MAIN = "MAIN",                   //main
@@ -20,6 +21,14 @@ export enum TokenType {
   DELETE = "DELETE",               //delete
   CLEAR = "CLEAR",                 //clear
   RETURN = "RETURN",               //return
+  VAR = "VAR",                     //var
+  BREAK = "BREAK",                 //break
+  CONTINUE = "CONTINUE",           //continue
+  FN = "FN",                       //fn
+  ARROW = "ARROW",                 //->
+  VOID_LIBS = "VOID_LIBS",         //@VoidLibs
+  NAMESPACE = "NAMESPACE",         //namespace
+  NAMESPACE_SEP = "NAMESPACE_SEP", //::
   
   //Типы данных.
   TYPE_STRING = "TYPE_STRING",     //string
@@ -30,6 +39,7 @@ export enum TokenType {
   TYPE_LIST = "TYPE_LIST",         //list
   TYPE_DICT = "TYPE_DICT",         //dict
   TYPE_LINK = "TYPE_LINK",         //link
+  TYPE_VAR = "TYPE_VAR",           //var
   
   //Литералы.
   STRING_LITERAL = "STRING_LITERAL",

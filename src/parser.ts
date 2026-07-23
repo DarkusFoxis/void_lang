@@ -1,16 +1,29 @@
 //Парсер: строит AST из токенов.
 import { Token, TokenType } from "./tokens";
 
+export interface VoidConfig {
+  maxIteration: number;
+  automaticType: boolean;
+}
+
 export type ASTNode =
   | ProgramNode | VoidAppNode | VoidEndNode | UsingStyleNode | MainNode | BlockNode
   | EchoNode | WriteNode | CreateVarNode | MultiCreateNode | AssignVarNode | IfNode
   | WhileNode | ForNode | BinaryExprNode | UnaryExprNode | NumberLiteralNode
   | FloatLiteralNode | StringLiteralNode | BoolLiteralNode | IdentifierNode
   | FunctionCallNode | RandCallNode | ListLiteralNode | DictLiteralNode
-  | IndexAccessNode | MethodCallNode | ReferenceNode | DereferenceNode
-  | FunctionDeclNode | ReturnNode | UpdateExprNode;
+  | IndexAccessNode | MethodCallNode | ReferenceNode | ArrayElementRefNode | DereferenceNode
+  | FunctionDeclNode | ReturnNode | UpdateExprNode | VoidSettingNode
+  | BreakNode | ContinueNode | NamespaceCallNode | CreateNamespaceNode;
 
-export interface ProgramNode { type: "Program"; appName: string; style: string | null; functions: FunctionDeclNode[]; body: ASTNode[]; }
+export interface BreakNode { type: "Break"; }
+export interface ContinueNode { type: "Continue"; }
+export interface NamespaceCallNode { type: "NamespaceCall"; namespace: string; name: string; args: ASTNode[]; }
+export interface CreateNamespaceNode { type: "CreateNamespace"; name: string; }
+
+export interface VoidSettingNode { type: "VoidSetting"; key: string; value: string | number | boolean; }
+
+export interface ProgramNode { type: "Program"; appName: string; isLib: boolean; namespace: string | null; style: string | null; config: VoidConfig; functions: FunctionDeclNode[]; body: ASTNode[]; settings: VoidSettingNode[]; }
 export interface VoidAppNode { type: "VoidApp"; name: string; }
 export interface VoidEndNode { type: "VoidEnd"; }
 export interface UsingStyleNode { type: "UsingStyle"; styleName: string; }
@@ -38,7 +51,8 @@ export interface DictLiteralNode { type: "DictLiteral"; entries: { key: ASTNode;
 export interface IndexAccessNode { type: "IndexAccess"; object: ASTNode; index: ASTNode; }
 export interface MethodCallNode { type: "MethodCall"; object: string; method: string; collectionType: string; args: ASTNode[]; }
 export interface ReferenceNode { type: "Reference"; target: string; }
-export interface DereferenceNode { type: "Dereference"; target: string; }
+export interface ArrayElementRefNode { type: "ArrayElementRef"; array: string; index: ASTNode; }
+export interface DereferenceNode { type: "Dereference"; target: ASTNode; }
 export interface FunctionDeclNode { type: "FunctionDecl"; returnType: string; name: string; params: { type: string; name: string }[]; body: BlockNode; }
 export interface ReturnNode { type: "Return"; value: ASTNode | null; }
 export interface UpdateExprNode { type: "UpdateExpr"; operator: string; target: ASTNode; isPrefix: boolean; }
@@ -71,19 +85,43 @@ export class Parser {
   }
 
   public parse(): ProgramNode {
-    const program: ProgramNode = { type: "Program", appName: "", style: null, functions: [], body: [] };
-    this.expect(TokenType.VOID_APP, 'Программа должна начинаться с @VoidApp');
-    program.appName = this.expect(TokenType.STRING_LITERAL, 'После @VoidApp ожидается имя приложения в кавычках').value;
-    this.expect(TokenType.SEMICOLON);
+    const program: ProgramNode = { 
+      type: "Program", appName: "", isLib: false, namespace: null, style: null, 
+      config: { maxIteration: 1_000_000, automaticType: false },
+      functions: [], body: [], settings: [] 
+    };
 
-    if (this.check(TokenType.USING)) {
-      this.advance(); this.expect(TokenType.STYLE);
-      program.style = this.expect(TokenType.STRING_LITERAL).value;
+    if (this.check(TokenType.VOID_LIBS)) {
+      this.advance();
+      program.isLib = true;
+      program.appName = this.expect(TokenType.STRING_LITERAL, 'После @VoidLibs ожидается имя библиотеки').value;
       this.expect(TokenType.SEMICOLON);
+    } else if (this.check(TokenType.VOID_APP)) {
+      this.advance();
+      program.appName = this.expect(TokenType.STRING_LITERAL, 'После @VoidApp ожидается имя приложения').value;
+      this.expect(TokenType.SEMICOLON);
+    } else {
+      this.error('Программа должна начинаться с @VoidApp или @VoidLibs');
     }
 
     while (!this.check(TokenType.VOID_END) && !this.check(TokenType.EOF)) {
-      if (this.check(TokenType.VOID_FUNC)) program.functions.push(this.parseFunctionDecl());
+      if (this.check(TokenType.VOID_SETTING)) {
+        const setting = this.parseVoidSetting();
+        program.settings.push(setting);
+        this.applySetting(program.config, setting);
+      }
+      else if (this.check(TokenType.NAMESPACE)) {
+        this.advance();
+        program.namespace = this.expect(TokenType.STRING_LITERAL, 'После namespace ожидается имя пространства имён').value;
+        this.expect(TokenType.SEMICOLON);
+      }
+      else if (this.check(TokenType.USING)) {
+        this.advance(); this.expect(TokenType.STYLE);
+        program.style = this.expect(TokenType.STRING_LITERAL).value;
+        this.expect(TokenType.SEMICOLON);
+      }
+      else if (this.check(TokenType.VOID_FUNC)) program.functions.push(this.parseFunctionDecl());
+      else if (this.check(TokenType.FN)) program.functions.push(this.parseFnFunction());
       else program.body.push(this.parseTopLevel());
     }
 
@@ -91,9 +129,55 @@ export class Parser {
     return program;
   }
 
+  private parseVoidSetting(): VoidSettingNode {
+    this.expect(TokenType.VOID_SETTING);
+    const keyToken = this.expect(TokenType.IDENTIFIER, "Ожидается имя настройки");
+    const key = keyToken.value;
+    this.expect(TokenType.ASSIGN);
+    
+    let value: string | number | boolean;
+    let negative = false;
+    
+    if (this.check(TokenType.MINUS)) {
+      negative = true;
+      this.advance();
+    }
+    
+    const valueToken = this.current();
+    
+    if (valueToken.type === TokenType.INT_LITERAL) {
+      value = parseInt(valueToken.value, 10);
+      if (negative) value = -value;
+      this.advance();
+    } else if (valueToken.type === TokenType.STRING_LITERAL) {
+      value = valueToken.value;
+      this.advance();
+    } else if (valueToken.type === TokenType.BOOL_LITERAL) {
+      value = valueToken.value === "true";
+      this.advance();
+    } else {
+      this.error(`Неожиданное значение для настройки '${key}'`);
+    }
+    
+    this.expect(TokenType.SEMICOLON);
+    return { type: "VoidSetting", key, value };
+  }
+
+  private applySetting(config: VoidConfig, setting: VoidSettingNode): void {
+    switch (setting.key) {
+      case "max_iteration":
+        config.maxIteration = setting.value as number;
+        break;
+      case "automatic_type":
+        config.automaticType = setting.value as boolean;
+        break;
+      default:
+        this.error(`Неизвестная настройка: '${setting.key}'`);
+    }
+  }
+
   private parseFunctionDecl(): FunctionDeclNode {
     this.expect(TokenType.VOID_FUNC);
-    // parseType() теперь сам обработает create:, если оно есть
     const returnType = this.parseType();
     const name = this.expect(TokenType.IDENTIFIER, "Ожидается имя функции").value;
     this.expect(TokenType.LPAREN);
@@ -111,8 +195,32 @@ export class Parser {
     return { type: "FunctionDecl", returnType, name, params, body: this.parseBlock() };
   }
 
+  private parseFnFunction(): FunctionDeclNode {
+    this.expect(TokenType.FN);
+    const nameToken = this.advance();
+    const name = nameToken.value;
+    this.expect(TokenType.LPAREN);
+    
+    const params: { type: string; name: string }[] = [];
+    if (!this.check(TokenType.RPAREN)) {
+      do {
+        const pType = this.parseType();
+        const pName = this.expect(TokenType.IDENTIFIER, "Ожидается имя параметра").value;
+        params.push({ type: pType, name: pName });
+      } while (this.match(TokenType.COMMA));
+    }
+    
+    this.expect(TokenType.RPAREN);
+    
+    let returnType = "void";
+    if (this.match(TokenType.ARROW)) {
+      returnType = this.parseType();
+    }
+    
+    return { type: "FunctionDecl", returnType, name, params, body: this.parseBlock() };
+  }
+
   private parseType(): string {
-    // Автоматически пропускаем 'create:', если он присутствует перед типом
     if (this.check(TokenType.CREATE)) {
       this.advance();
     }
@@ -128,6 +236,7 @@ export class Parser {
       case TokenType.TYPE_DICT: type = "dict"; break;
       case TokenType.TYPE_LINK: type = "link"; break; 
       case TokenType.TYPE_VOID: type = "void"; break;
+      case TokenType.VAR: type = "var"; break;
       default: this.error(`Ожидался тип, получено: '${t.value}'`);
     }
     this.advance(); 
@@ -164,11 +273,22 @@ export class Parser {
       case TokenType.WHILE: return this.parseWhile();
       case TokenType.FOR: return this.parseFor();
       case TokenType.RETURN: return this.parseReturn();
+      case TokenType.BREAK: return this.parseBreak();
+      case TokenType.CONTINUE: return this.parseContinue();
       case TokenType.INCREMENT:
       case TokenType.DECREMENT: return this.parseUpdateStatement();
       case TokenType.LPAREN: return this.parseExprStatement();
       default: this.error(`Неожиданная инструкция: '${token.value}'`); return null as never;
     }
+  }
+
+  private parseAssignmentOperator(): string {
+    if (this.match(TokenType.PLUS_ASSIGN)) return "+=";
+    if (this.match(TokenType.MINUS_ASSIGN)) return "-=";
+    if (this.match(TokenType.MULTIPLY_ASSIGN)) return "*=";
+    if (this.match(TokenType.DIVIDE_ASSIGN)) return "/=";
+    this.expect(TokenType.ASSIGN);
+    return "=";
   }
 
   private parseUpdateStatement(): ASTNode {
@@ -183,12 +303,7 @@ export class Parser {
     if (this.check(TokenType.PLUS_ASSIGN) || this.check(TokenType.MINUS_ASSIGN) ||
         this.check(TokenType.MULTIPLY_ASSIGN) || this.check(TokenType.DIVIDE_ASSIGN) ||
         this.check(TokenType.ASSIGN)) {
-      let operator = "=";
-      if (this.match(TokenType.PLUS_ASSIGN)) operator = "+=";
-      else if (this.match(TokenType.MINUS_ASSIGN)) operator = "-=";
-      else if (this.match(TokenType.MULTIPLY_ASSIGN)) operator = "*=";
-      else if (this.match(TokenType.DIVIDE_ASSIGN)) operator = "/=";
-      else this.advance();
+      const operator = this.parseAssignmentOperator();
       const value = this.parseExpression();
       this.expect(TokenType.SEMICOLON);
       return { type: "AssignVar", target: expr, value, operator } as AssignVarNode;
@@ -210,15 +325,23 @@ export class Parser {
     return { type: "Return", value };
   }
 
+  private parseBreak(): BreakNode {
+    this.expect(TokenType.BREAK);
+    this.expect(TokenType.SEMICOLON);
+    return { type: "Break" };
+  }
+
+  private parseContinue(): ContinueNode {
+    this.expect(TokenType.CONTINUE);
+    this.expect(TokenType.SEMICOLON);
+    return { type: "Continue" };
+  }
+
   private parseDereferenceAssignment(): ASTNode {
     this.expect(TokenType.MULTIPLY);
-    const target: DereferenceNode = { type: "Dereference", target: this.expect(TokenType.IDENTIFIER).value };
-    let operator = "=";
-    if (this.match(TokenType.PLUS_ASSIGN)) operator = "+=";
-    else if (this.match(TokenType.MINUS_ASSIGN)) operator = "-=";
-    else if (this.match(TokenType.MULTIPLY_ASSIGN)) operator = "*=";
-    else if (this.match(TokenType.DIVIDE_ASSIGN)) operator = "/=";
-    else this.expect(TokenType.ASSIGN);
+    const name = this.expect(TokenType.IDENTIFIER).value;
+    const target: DereferenceNode = { type: "Dereference", target: { type: "Identifier", name } };
+    const operator = this.parseAssignmentOperator();
     const value = this.parseExpression();
     this.expect(TokenType.SEMICOLON);
     return { type: "AssignVar", target, value, operator } as AssignVarNode;
@@ -242,7 +365,8 @@ export class Parser {
       case TokenType.TYPE_STRING: varType = "string"; break; case TokenType.TYPE_INT: varType = "int"; break;
       case TokenType.TYPE_FLOAT: varType = "float"; break; case TokenType.TYPE_BOOL: varType = "bool"; break;
       case TokenType.TYPE_LIST: varType = "list"; break; case TokenType.TYPE_DICT: varType = "dict"; break;
-      case TokenType.TYPE_LINK: varType = "link"; break;
+      case TokenType.TYPE_LINK: varType = "link"; break; case TokenType.TYPE_VOID: varType = "void"; break;
+      case TokenType.VAR: varType = "var"; break;
       default: this.error(`Ожидался тип переменной, получено: '${typeToken.value}'`);
     }
     this.advance();
@@ -297,12 +421,7 @@ export class Parser {
         return { type: "UpdateExpr", operator: op, target, isPrefix: false } as UpdateExprNode;
       }
       
-      let operator = "=";
-      if (this.match(TokenType.PLUS_ASSIGN)) operator = "+=";
-      else if (this.match(TokenType.MINUS_ASSIGN)) operator = "-=";
-      else if (this.match(TokenType.MULTIPLY_ASSIGN)) operator = "*=";
-      else if (this.match(TokenType.DIVIDE_ASSIGN)) operator = "/=";
-      else this.expect(TokenType.ASSIGN);
+      const operator = this.parseAssignmentOperator();
       const value = this.parseExpression();
       this.expect(TokenType.SEMICOLON);
       const target: IndexAccessNode = { type: "IndexAccess", object: { type: "Identifier", name }, index };
@@ -317,12 +436,7 @@ export class Parser {
     }
 
     if (this.check(TokenType.ASSIGN) || this.check(TokenType.PLUS_ASSIGN) || this.check(TokenType.MINUS_ASSIGN) || this.check(TokenType.MULTIPLY_ASSIGN) || this.check(TokenType.DIVIDE_ASSIGN)) {
-      let operator = "=";
-      if (this.match(TokenType.PLUS_ASSIGN)) operator = "+=";
-      else if (this.match(TokenType.MINUS_ASSIGN)) operator = "-=";
-      else if (this.match(TokenType.MULTIPLY_ASSIGN)) operator = "*=";
-      else if (this.match(TokenType.DIVIDE_ASSIGN)) operator = "/=";
-      else this.advance();
+      const operator = this.parseAssignmentOperator();
       const value = this.parseExpression();
       this.expect(TokenType.SEMICOLON);
       const target: IdentifierNode = { type: "Identifier", name };
@@ -375,10 +489,7 @@ export class Parser {
         if (this.check(TokenType.INCREMENT) || this.check(TokenType.DECREMENT)) {
           init = { type: "UpdateExpr", operator: this.advance().value, target: { type: "Identifier", name }, isPrefix: false } as UpdateExprNode;
         } else {
-          let operator = "=";
-          if (this.match(TokenType.PLUS_ASSIGN)) operator = "+="; else if (this.match(TokenType.MINUS_ASSIGN)) operator = "-=";
-          else if (this.match(TokenType.MULTIPLY_ASSIGN)) operator = "*="; else if (this.match(TokenType.DIVIDE_ASSIGN)) operator = "/=";
-          else this.expect(TokenType.ASSIGN);
+          const operator = this.parseAssignmentOperator();
           init = { type: "AssignVar", target: { type: "Identifier", name }, value: this.parseExpression(), operator } as AssignVarNode;
         }
       } else init = this.parseExpression();
@@ -395,10 +506,7 @@ export class Parser {
         if (this.check(TokenType.INCREMENT) || this.check(TokenType.DECREMENT)) {
           update = { type: "UpdateExpr", operator: this.advance().value, target: { type: "Identifier", name }, isPrefix: false } as UpdateExprNode;
         } else {
-          let operator = "=";
-          if (this.match(TokenType.PLUS_ASSIGN)) operator = "+="; else if (this.match(TokenType.MINUS_ASSIGN)) operator = "-=";
-          else if (this.match(TokenType.MULTIPLY_ASSIGN)) operator = "*="; else if (this.match(TokenType.DIVIDE_ASSIGN)) operator = "/=";
-          else this.expect(TokenType.ASSIGN);
+          const operator = this.parseAssignmentOperator();
           update = { type: "AssignVar", target: { type: "Identifier", name }, value: this.parseExpression(), operator } as AssignVarNode;
         }
       } else update = this.parseExpression();
@@ -446,7 +554,28 @@ export class Parser {
 
   private parseUnary(): ASTNode {
     if (this.check(TokenType.MINUS) || this.check(TokenType.NOT)) return { type: "UnaryExpr", operator: this.advance().value, operand: this.parseUnary() };
-    if (this.check(TokenType.REFERENCE) || this.check(TokenType.MULTIPLY)) return { type: "UnaryExpr", operator: this.advance().value, operand: this.parseUnary() };
+    if (this.check(TokenType.REFERENCE)) {
+      this.advance();
+      const target = this.parsePostfix();
+      if (target.type === "Identifier") {
+        return { type: "Reference", target: (target as IdentifierNode).name } as ReferenceNode;
+      } else if (target.type === "IndexAccess") {
+        const indexAccess = target as IndexAccessNode;
+        if (indexAccess.object.type === "Identifier") {
+          return { type: "ArrayElementRef", array: (indexAccess.object as IdentifierNode).name, index: indexAccess.index } as ArrayElementRefNode;
+        }
+        this.error("Ссылка поддерживается только на переменные и элементы массивов");
+      }
+      this.error("После & ожидается переменная или arr[index]");
+    }
+    if (this.check(TokenType.MULTIPLY)) {
+      this.advance();
+      const target = this.parseUnary();
+      if (target.type === "Identifier" || target.type === "IndexAccess" || target.type === "ArrayElementRef") {
+        return { type: "Dereference", target } as DereferenceNode;
+      }
+      this.error("После * ожидается переменная, arr[index] или ссылка");
+    }
     if (this.check(TokenType.INCREMENT) || this.check(TokenType.DECREMENT)) return { type: "UpdateExpr", operator: this.advance().value, target: this.parseUnary(), isPrefix: true } as UpdateExprNode;
     return this.parsePostfix();
   }
@@ -475,6 +604,18 @@ export class Parser {
       case TokenType.LBRACE: return this.parseDictLiteral();
       case TokenType.IDENTIFIER: {
         const name = this.advance();
+        if (this.check(TokenType.NAMESPACE_SEP)) {
+          this.advance();
+          const funcName = this.expect(TokenType.IDENTIFIER, "Ожидается имя функции").value;
+          this.expect(TokenType.LPAREN);
+          const args: ASTNode[] = [];
+          if (!this.check(TokenType.RPAREN)) {
+            args.push(this.parseExpression());
+            while (this.match(TokenType.COMMA)) args.push(this.parseExpression());
+          }
+          this.expect(TokenType.RPAREN);
+          return { type: "NamespaceCall", namespace: name.value, name: funcName, args } as NamespaceCallNode;
+        }
         if (this.check(TokenType.LPAREN)) {
           this.advance(); const args: ASTNode[] = [];
           if (!this.check(TokenType.RPAREN)) { args.push(this.parseExpression()); while (this.match(TokenType.COMMA)) args.push(this.parseExpression()); }

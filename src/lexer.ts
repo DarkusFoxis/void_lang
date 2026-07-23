@@ -33,6 +33,11 @@ export class Lexer {
     ["add", TokenType.ADD],
     ["delete", TokenType.DELETE],
     ["clear", TokenType.CLEAR],
+    ["var", TokenType.VAR],
+    ["break", TokenType.BREAK],
+    ["continue", TokenType.CONTINUE],
+    ["fn", TokenType.FN],
+    ["namespace", TokenType.NAMESPACE],
   ]);
 
   constructor(source: string) {
@@ -125,6 +130,9 @@ export class Lexer {
       case "@VoidApp": return createToken(TokenType.VOID_APP, value, startLine, startCol);
       case "@VoidEnd": return createToken(TokenType.VOID_END, value, startLine, startCol);
       case "@VoidFunction": return createToken(TokenType.VOID_FUNC, value, startLine, startCol);
+      case "@VoidSetting": return createToken(TokenType.VOID_SETTING, value, startLine, startCol);
+      case "@VoidLibs": return createToken(TokenType.VOID_LIBS, value, startLine, startCol);
+      case "@VoidImport": return createToken(TokenType.VOID_IMPORT, value, startLine, startCol);
       default: this.error(`Неизвестная директива: ${value}`, startLine, startCol);
     }
     return createToken(TokenType.EOF, "", startLine, startCol);
@@ -168,6 +176,8 @@ export class Lexer {
         case "/=": this.advance(); this.advance(); this.tokens.push(createToken(TokenType.DIVIDE_ASSIGN, "/=", startLine, startCol)); continue;
         case "++": this.advance(); this.advance(); this.tokens.push(createToken(TokenType.INCREMENT, "++", startLine, startCol)); continue;
         case "--": this.advance(); this.advance(); this.tokens.push(createToken(TokenType.DECREMENT, "--", startLine, startCol)); continue;
+        case "->": this.advance(); this.advance(); this.tokens.push(createToken(TokenType.ARROW, "->", startLine, startCol)); continue;
+        case "::": this.advance(); this.advance(); this.tokens.push(createToken(TokenType.NAMESPACE_SEP, "::", startLine, startCol)); continue;
       }
 
       switch (ch) {

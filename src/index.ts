@@ -25,19 +25,43 @@ const colors = {
 function printBanner(): void {
   console.log(colors.cyan(`
 ╔══════════════════════════════════╗
-║     🌀 Void Language v1.2.0      ║
+║     🌀 Void Language v1.4        ║
 ║     Interpreter by TypeScript    ║
 ╚══════════════════════════════════╝
 `));
 }
 
 function preprocessSource(source: string): string {
+  let processed = source;
+  
+  const importPattern = /@VoidImport\s+"([^"]+)"\s*;/g;
+  processed = processed.replace(importPattern, '');
+  
   const voidEndPattern = /@VoidEnd\s*;/;
-  const match = source.match(voidEndPattern);
+  const match = processed.match(voidEndPattern);
   if (match && match.index !== undefined) {
-    return source.substring(0, match.index + match[0].length);
+    return processed.substring(0, match.index + match[0].length);
   }
-  return source;
+  return processed;
+}
+
+function extractImports(source: string): string[] {
+  const imports: string[] = [];
+  const importPattern = /@VoidImport\s+"([^"]+)"\s*;/g;
+  let match;
+  while ((match = importPattern.exec(source)) !== null) {
+    imports.push(match[1]);
+  }
+  return imports;
+}
+
+function loadAndParseFile(filePath: string): ReturnType<typeof Parser.prototype.parse> {
+  const source = fs.readFileSync(filePath, "utf-8");
+  const processedSource = preprocessSource(source);
+  const lexer = new Lexer(processedSource);
+  const tokens = lexer.tokenize();
+  const parser = new Parser(tokens);
+  return parser.parse();
 }
 
 function runFile(filePath: string): void {
@@ -52,14 +76,31 @@ function runFile(filePath: string): void {
   }
 
   const source = fs.readFileSync(filePath, "utf-8");
-  const processedSource = preprocessSource(source);
+  const imports = extractImports(source);
+  const dir = path.dirname(filePath);
 
   try {
+    const interpreter = new Interpreter();
+    
+    for (const importPath of imports) {
+      const fullPath = path.resolve(dir, importPath);
+      if (!fs.existsSync(fullPath)) {
+        console.error(colors.red(`Ошибка: Файл библиотеки '${fullPath}' не найден`));
+        process.exit(1);
+      }
+      const libAst = loadAndParseFile(fullPath);
+      if (!libAst.isLib) {
+        console.error(colors.red(`Ошибка: '${importPath}' не является библиотекой (нет @VoidLibs)`));
+        process.exit(1);
+      }
+      interpreter.registerLibrary(libAst);
+    }
+    
+    const processedSource = preprocessSource(source);
     const lexer = new Lexer(processedSource);
     const tokens = lexer.tokenize();
     const parser = new Parser(tokens);
     const ast = parser.parse();
-    const interpreter = new Interpreter();
     interpreter.execute(ast);
   } catch (error) {
     if (error instanceof Error) {
@@ -81,9 +122,11 @@ void --version            Показать версию
 ${colors.bold("Синтаксис Void:")}
 ${colors.cyan("Структура программы:")}
 @VoidApp "ИмяПриложения";
+@VoidSetting max_iteration = -1;
+@VoidSetting automatic_type = true;
 using style "Abyss";
 
-@VoidFunction create:int sum(create:int a, create:int b) {
+fn sum(int a, int b) -> int {
     return a + b;
 }
 
@@ -92,37 +135,34 @@ main() {
 }
 @VoidEnd;
 
+${colors.cyan("Библиотеки:")}
+@VoidLibs "MathLib";
+namespace "math";
+fn add(int a, int b) -> int { return a + b; }
+@VoidEnd;
+
+// Импорт: @VoidImport "libs/math.void";
+// Вызов: math::add(1, 2);
+
 ${colors.cyan("Переменные и Ссылки:")}
 create:string name = "значение";
 create:int age = 25;
+create:var x = "авто-тип";
+create:void y = 42;
 create:link ptr = &age;
-*ptr += 5; // Составное присваивание
+create:link arrRef = &arr[0];
+*ptr += 5;
 
 ${colors.cyan("Ввод/вывод:")}
 echo("Hello, World!", *ptr);
 create:string input = write("Введите: ");
 
-${colors.cyan("Арифметика и присваивание:")}
-+ - * / % **
-= += -= *= /=
-
-${colors.cyan("Сравнение и Логические:")}
-== != < > <= >=
-&& || !
-
 ${colors.cyan("Управляющие конструкции:")}
 if (условие) { ... } else { ... }
 while (условие) { ... }
 for (init; condition; update) { ... }
-
-${colors.cyan("Комментарии:")}
-// Однострочный
-#* Многострочный *#
-
-${colors.cyan("Встроенные функции:")}
-abs, sqrt, floor, ceil, round, min, max, random, rand
-toInt, toFloat, toString, toBool
-length, upper, lower, trim, contains
+break;    // выход из цикла
+continue; // следующая итерация
 `);
 }
 
@@ -142,7 +182,7 @@ function main(): void {
       break;
     case "--version":
     case "-v":
-      console.log("Void Language v1.2.0");
+      console.log("Void Language v1.4");
       break;
     default:
       printBanner();

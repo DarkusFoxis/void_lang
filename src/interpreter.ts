@@ -5,17 +5,20 @@ import {
   ForNode, BinaryExprNode, UnaryExprNode, NumberLiteralNode,
   FloatLiteralNode, StringLiteralNode, BoolLiteralNode, IdentifierNode,
   FunctionCallNode, RandCallNode, ListLiteralNode, DictLiteralNode,
-  IndexAccessNode, MethodCallNode, FunctionDeclNode, ReturnNode, DereferenceNode, UpdateExprNode
+  IndexAccessNode, MethodCallNode, FunctionDeclNode, ReturnNode, DereferenceNode, UpdateExprNode,
+  VoidConfig, ReferenceNode, ArrayElementRefNode, NamespaceCallNode
 } from "./parser";
 import * as readlineSync from "readline-sync";
 
-type VoidValue = string | number | boolean | null | VoidValue[] | VoidDict | VoidLink;
+type VoidValue = string | number | boolean | null | VoidValue[] | VoidDict | VoidLink | VoidArrayElementRef;
 
 interface VoidDict { __isDict: true; keys: VoidValue[]; values: VoidValue[]; }
 interface VoidLink { __isLink: true; targetName: string; }
+interface VoidArrayElementRef { __isArrayElementRef: true; arrayName: string; indexNode: any; }
 function createVoidDict(): VoidDict { return { __isDict: true, keys: [], values: [] }; }
 function isVoidDict(val: VoidValue): val is VoidDict { return val !== null && typeof val === "object" && !Array.isArray(val) && (val as any).__isDict === true; }
 function isVoidLink(val: VoidValue): val is VoidLink { return val !== null && typeof val === "object" && (val as any).__isLink === true; }
+function isVoidArrayElementRef(val: VoidValue): val is VoidArrayElementRef { return val !== null && typeof val === "object" && (val as any).__isArrayElementRef === true; }
 
 interface Variable { type: string; value: VoidValue; }
 
@@ -37,28 +40,64 @@ class Environment {
     if (this.parent) { this.parent.set(name, value); return; }
     throw new Error(`[Runtime Error] Переменная '${name}' не определена.`);
   }
+  setType(name: string, type: string): void {
+    if (this.variables.has(name)) { this.variables.get(name)!.type = type; return; }
+    if (this.parent) { this.parent.setType(name, type); return; }
+    throw new Error(`[Runtime Error] Переменная '${name}' не определена.`);
+  }
   has(name: string): boolean { return this.variables.has(name) || (this.parent ? this.parent.has(name) : false); }
 }
 
 class ReturnSignal { constructor(public value: VoidValue) {} }
+class BreakSignal {}
+class ContinueSignal {}
 
 export class Interpreter {
   private globalEnv: Environment;
   private appName: string = "";
   private style: string | null = null;
+  private config: VoidConfig = { maxIteration: 1_000_000, automaticType: false };
   private functions: Map<string, FunctionDeclNode> = new Map();
+  private namespaces: Map<string, Map<string, FunctionDeclNode>> = new Map();
+  private importedNamespaces: Map<string, Map<string, FunctionDeclNode>> = new Map();
 
   constructor() { this.globalEnv = new Environment(); }
 
   public execute(program: ProgramNode): void {
     this.appName = program.appName; this.style = program.style;
-    console.log(`\x1b[36m═══ Void App: ${this.appName} ═══\x1b[0m`);
-    if (this.style) console.log(`\x1b[90mСтиль: ${this.style}\x1b[0m`);
-    console.log();
+    this.config = program.config;
+    
+    if (!program.isLib) {
+      console.log(`\x1b[36m═══ Void App: ${this.appName} ═══\x1b[0m`);
+      if (this.style) console.log(`\x1b[90mСтиль: ${this.style}\x1b[0m`);
+      if (this.config.maxIteration === -1) console.log(`\x1b[90mНастройки: max_iteration = ∞\x1b[0m`);
+      if (this.config.automaticType) console.log(`\x1b[90mНастройки: automatic_type = true\x1b[0m`);
+      console.log();
+    }
+    
     for (const func of program.functions) this.functions.set(func.name, func);
-    try { for (const node of program.body) this.executeNode(node, this.globalEnv); } 
-    catch (e) { if (e instanceof ReturnSignal) throw new Error("[Runtime Error] Оператор return использован вне функции."); throw e; }
-    console.log(`\x1b[36m═══ Конец ${this.appName} ═══\x1b[0m`);
+    
+    if (program.isLib && program.namespace) {
+      const nsFuncs = new Map<string, FunctionDeclNode>();
+      for (const func of program.functions) nsFuncs.set(func.name, func);
+      this.namespaces.set(program.namespace, nsFuncs);
+    }
+    
+    if (!program.isLib) {
+      try { for (const node of program.body) this.executeNode(node, this.globalEnv); } 
+      catch (e) { if (e instanceof ReturnSignal) throw new Error("[Runtime Error] Оператор return использован вне функции."); throw e; }
+      console.log(`\x1b[36m═══ Конец ${this.appName} ═══\x1b[0m`);
+    }
+  }
+
+  public registerLibrary(program: ProgramNode): void {
+    for (const func of program.functions) this.functions.set(func.name, func);
+    if (program.namespace) {
+      const nsFuncs = new Map<string, FunctionDeclNode>();
+      for (const func of program.functions) nsFuncs.set(func.name, func);
+      this.namespaces.set(program.namespace, nsFuncs);
+      this.importedNamespaces.set(program.namespace, nsFuncs);
+    }
   }
 
   private executeNode(node: ASTNode, env: Environment): VoidValue {
@@ -88,6 +127,12 @@ export class Interpreter {
       case "IndexAccess": return this.executeIndexAccess(node as IndexAccessNode, env);
       case "MethodCall": return this.executeMethodCall(node as MethodCallNode, env);
       case "Return": return this.executeReturn(node as ReturnNode, env);
+      case "Reference": return this.executeReference(node as ReferenceNode, env);
+      case "ArrayElementRef": return this.executeArrayElementRef(node as ArrayElementRefNode, env);
+      case "Dereference": return this.executeDereference(node as DereferenceNode, env);
+      case "NamespaceCall": return this.executeNamespaceCall(node as NamespaceCallNode, env);
+      case "Break": throw new BreakSignal();
+      case "Continue": throw new ContinueSignal();
       case "FunctionDecl": return null;
       default: throw new Error(`[Runtime Error] Неизвестный узел AST: ${(node as any).type}.`);
     }
@@ -120,13 +165,30 @@ export class Interpreter {
         setter = (newValue: number) => { obj.values[keyIdx] = newValue; };
       } else throw new Error(`[Runtime Error] Оператор ${node.operator} не применим к типу ${typeof obj}.`);
     } else if (target.type === "Dereference") {
-      const linkName = (target as DereferenceNode).target;
-      const linkVar = env.get(linkName);
-      if (!isVoidLink(linkVar.value)) throw new Error(`[Runtime Error] '${linkName}' не ссылка.`);
-      const targetName = linkVar.value.targetName;
-      const targetVar = env.get(targetName);
-      currentValue = this.toNumber(targetVar.value);
-      setter = (newValue: number) => env.set(targetName, this.castValue(newValue, targetVar.type, targetName));
+      const derefNode = target as DereferenceNode;
+      const derefValue = this.executeDereference(derefNode, env);
+      currentValue = this.toNumber(derefValue);
+      setter = (newValue: number) => {
+        if (derefNode.target.type === "Identifier") {
+          const name = (derefNode.target as IdentifierNode).name;
+          const variable = env.get(name);
+          if (isVoidLink(variable.value)) {
+            const targetName = variable.value.targetName;
+            const targetVar = env.get(targetName);
+            env.set(targetName, this.castValue(newValue, targetVar.type, targetName));
+          }
+        } else if (derefNode.target.type === "ArrayElementRef") {
+          const ref = this.executeArrayElementRef(derefNode.target as ArrayElementRefNode, env);
+          const { arr, idx } = this.getArrayElementRef(ref, env);
+          arr[idx] = newValue;
+        }
+      };
+    } else if (target.type === "ArrayElementRef") {
+      const refNode = target as ArrayElementRefNode;
+      const ref = this.executeArrayElementRef(refNode, env);
+      const { arr, idx } = this.getArrayElementRef(ref, env);
+      currentValue = this.toNumber(arr[idx]);
+      setter = (newValue: number) => { arr[idx] = newValue; };
     } else throw new Error(`[Runtime Error] Оператор ${node.operator} применим только к переменным/индексам.`);
 
     const newValue = node.operator === "++" ? currentValue + 1 : currentValue - 1;
@@ -151,39 +213,117 @@ export class Interpreter {
   
   private executeCreateVar(node: CreateVarNode, env: Environment): VoidValue {
     let value: VoidValue;
-    if (node.initializer) value = this.executeNode(node.initializer, env);
-    else {
+    let actualType = node.varType;
+    
+    if (node.initializer) {
+      value = this.executeNode(node.initializer, env);
+      
+      if (node.varType === "var") {
+        actualType = this.inferType(value);
+      } else if (node.varType === "void") {
+        actualType = "void";
+      }
+    } else {
       switch (node.varType) {
-        case "string": value = ""; break; case "int": value = 0; break; case "float": value = 0.0; break;
-        case "bool": value = false; break; case "list": value = []; break; case "dict": value = createVoidDict(); break;
-        case "link": value = null; break; default: value = null;
+        case "string": value = ""; break;
+        case "int": value = 0; break;
+        case "float": value = 0.0; break;
+        case "bool": value = false; break;
+        case "list": value = []; break;
+        case "dict": value = createVoidDict(); break;
+        case "link": value = null; break;
+        case "var": value = null; actualType = "null"; break;
+        case "void": value = null; actualType = "null"; break;
+        default: value = null;
       }
     }
-    if (node.varType !== "list" && node.varType !== "dict" && node.varType !== "link") value = this.castValue(value, node.varType, node.name);
-    else {
+    
+    if (node.varType !== "list" && node.varType !== "dict" && node.varType !== "link" && 
+        node.varType !== "var" && node.varType !== "void") {
+      value = this.castValue(value, node.varType, node.name);
+    } else {
       if (node.varType === "list" && !Array.isArray(value)) throw new Error(`Переменная '${node.name}' типа list ожидает список.`);
       if (node.varType === "dict" && !isVoidDict(value)) throw new Error(`Переменная '${node.name}' типа dict ожидает словарь.`);
-      if (node.varType === "link" && !isVoidLink(value) && value !== null) throw new Error(`Переменная '${node.name}' типа link ожидает ссылку.`);
+      if (node.varType === "link" && !isVoidLink(value) && !isVoidArrayElementRef(value) && value !== null) throw new Error(`Переменная '${node.name}' типа link ожидает ссылку.`);
     }
-    env.define(node.name, node.varType, value); return value;
+    
+    env.define(node.name, actualType, value);
+    return value;
+  }
+
+  private inferType(value: VoidValue): string {
+    if (value === null) return "null";
+    if (typeof value === "string") return "string";
+    if (typeof value === "number") return Number.isInteger(value) ? "int" : "float";
+    if (typeof value === "boolean") return "bool";
+    if (Array.isArray(value)) return "list";
+    if (isVoidDict(value)) return "dict";
+    if (isVoidLink(value)) return "link";
+    return "null";
   }
   private executeMultiCreate(node: MultiCreateNode, env: Environment): VoidValue { for (const decl of node.declarations) this.executeCreateVar(decl, env); return null; }
   
   private executeAssignVar(node: AssignVarNode, env: Environment): VoidValue {
     let value = this.executeNode(node.value, env);
     if (node.target.type === "Identifier") {
-      const name = (node.target as IdentifierNode).name; const variable = env.get(name);
-      if (node.operator !== "=") value = this.applyBinaryOp(node.operator.substring(0, 1), variable.value, value);
-      if (variable.type !== "list" && variable.type !== "dict" && variable.type !== "link") value = this.castValue(value, variable.type, name);
+      const name = (node.target as IdentifierNode).name;
+      const variable = env.get(name);
+      
+      if (node.operator !== "=") {
+        value = this.applyBinaryOp(node.operator.substring(0, 1), variable.value, value);
+      }
+      
+      if (variable.type === "var" || variable.type === "void") {
+        env.setType(name, this.inferType(value));
+      } else if (variable.type !== "list" && variable.type !== "dict" && variable.type !== "link") {
+        value = this.castValue(value, variable.type, name);
+      }
+      
       env.set(name, value);
     } else if (node.target.type === "Dereference") {
-      const linkName = (node.target as DereferenceNode).target; const linkVar = env.get(linkName);
-      if (!isVoidLink(linkVar.value)) throw new Error(`[Runtime Error] '${linkName}' не ссылка.`);
-      const targetName = linkVar.value.targetName; const targetVar = env.get(targetName);
-      if (node.operator !== "=") value = this.applyBinaryOp(node.operator.substring(0, 1), targetVar.value, value);
-      if (targetVar.type !== "list" && targetVar.type !== "dict" && targetVar.type !== "link") value = this.castValue(value, targetVar.type, targetName);
-      env.set(targetName, value);
-    } else if (node.target.type === "IndexAccess") this.assignIndex(node.target as IndexAccessNode, value, node.operator, env);
+      const derefNode = node.target as DereferenceNode;
+      if (derefNode.target.type === "Identifier") {
+        const linkName = (derefNode.target as IdentifierNode).name;
+        const linkVar = env.get(linkName);
+        if (isVoidLink(linkVar.value)) {
+          const targetName = linkVar.value.targetName;
+          const targetVar = env.get(targetName);
+          
+          if (node.operator !== "=") {
+            value = this.applyBinaryOp(node.operator.substring(0, 1), targetVar.value, value);
+          }
+          
+          if (targetVar.type === "var" || targetVar.type === "void") {
+            env.setType(targetName, this.inferType(value));
+          } else if (targetVar.type !== "list" && targetVar.type !== "dict" && targetVar.type !== "link") {
+            value = this.castValue(value, targetVar.type, targetName);
+          }
+          
+          env.set(targetName, value);
+        } else if (isVoidArrayElementRef(linkVar.value)) {
+          const { arr, idx } = this.getArrayElementRef(linkVar.value, env);
+          
+          if (node.operator !== "=") {
+            value = this.applyBinaryOp(node.operator.substring(0, 1), arr[idx], value);
+          }
+          
+          arr[idx] = value;
+        } else {
+          throw new Error(`[Runtime Error] '${linkName}' не ссылка.`);
+        }
+      } else if (derefNode.target.type === "ArrayElementRef") {
+        const ref = this.executeArrayElementRef(derefNode.target as ArrayElementRefNode, env);
+        const { arr, idx } = this.getArrayElementRef(ref, env);
+        
+        if (node.operator !== "=") {
+          value = this.applyBinaryOp(node.operator.substring(0, 1), arr[idx], value);
+        }
+        
+        arr[idx] = value;
+      }
+    } else if (node.target.type === "IndexAccess") {
+      this.assignIndex(node.target as IndexAccessNode, value, node.operator, env);
+    }
     return value;
   }
 
@@ -206,11 +346,43 @@ export class Interpreter {
     return null;
   }
   private executeWhile(node: WhileNode, env: Environment): VoidValue {
-    let i = 0; while (this.isTruthy(this.executeNode(node.condition, env))) { this.executeBlock(node.body, env); if (++i > 1000000) throw new Error(`[Runtime Error] Бесконечный цикл.`); } return null;
+    let i = 0;
+    while (this.isTruthy(this.executeNode(node.condition, env))) {
+      try {
+        this.executeBlock(node.body, env);
+      } catch (e) {
+        if (e instanceof BreakSignal) break;
+        if (e instanceof ContinueSignal) continue;
+        throw e;
+      }
+      if (this.config.maxIteration !== -1 && ++i > this.config.maxIteration) {
+        throw new Error(`[Runtime Error] Превышен лимит итераций (${this.config.maxIteration}).`);
+      }
+    }
+    return null;
   }
+
   private executeFor(node: ForNode, env: Environment): VoidValue {
-    const forEnv = new Environment(env); let i = 0; if (node.init) this.executeNode(node.init, forEnv);
-    while (this.isTruthy(this.executeNode(node.condition, forEnv))) { this.executeBlock(node.body, forEnv); if (node.update) this.executeNode(node.update, forEnv); if (++i > 1000000) throw new Error(`[Runtime Error] Бесконечный цикл.`); } return null;
+    const forEnv = new Environment(env);
+    let i = 0;
+    if (node.init) this.executeNode(node.init, forEnv);
+    while (this.isTruthy(this.executeNode(node.condition, forEnv))) {
+      try {
+        this.executeBlock(node.body, forEnv);
+      } catch (e) {
+        if (e instanceof BreakSignal) break;
+        if (e instanceof ContinueSignal) {
+          if (node.update) this.executeNode(node.update, forEnv);
+          continue;
+        }
+        throw e;
+      }
+      if (node.update) this.executeNode(node.update, forEnv);
+      if (this.config.maxIteration !== -1 && ++i > this.config.maxIteration) {
+        throw new Error(`[Runtime Error] Превышен лимит итераций (${this.config.maxIteration}).`);
+      }
+    }
+    return null;
   }
   
   private executeListLiteral(node: ListLiteralNode, env: Environment): VoidValue { return node.elements.map(e => this.executeNode(e, env)); }
@@ -262,18 +434,95 @@ export class Interpreter {
   private executeBinaryExpr(node: BinaryExprNode, env: Environment): VoidValue { return this.applyBinaryOp(node.operator, this.executeNode(node.left, env), this.executeNode(node.right, env)); }
   
   private executeUnaryExpr(node: UnaryExprNode, env: Environment): VoidValue {
-    const operand = this.executeNode(node.operand, env);
-    switch (node.operator) {
-      case "-": return -this.toNumber(operand);
-      case "!": return !this.isTruthy(operand);
-      case "&": if (node.operand.type === "Identifier") return { __isLink: true, targetName: (node.operand as IdentifierNode).name } as VoidLink; throw new Error("[Runtime Error] Ссылка только на переменную.");
-      case "*": if (isVoidLink(operand)) return env.get(operand.targetName).value; throw new Error("[Runtime Error] * только для ссылок.");
-      default: throw new Error(`[Runtime Error] Неизвестный унарный оператор.`);
+    if (node.operator === "-") {
+      const operand = this.executeNode(node.operand, env);
+      return -this.toNumber(operand);
     }
+    if (node.operator === "!") {
+      const operand = this.executeNode(node.operand, env);
+      return !this.isTruthy(operand);
+    }
+    throw new Error(`[Runtime Error] Неизвестный унарный оператор.`);
+  }
+
+  private executeReference(node: ReferenceNode, env: Environment): VoidValue {
+    return { __isLink: true, targetName: node.target } as VoidLink;
+  }
+
+  private executeArrayElementRef(node: ArrayElementRefNode, env: Environment): VoidArrayElementRef {
+    return { __isArrayElementRef: true, arrayName: node.array, indexNode: node.index };
+  }
+
+  private getArrayElementRef(ref: VoidArrayElementRef, env: Environment): { arr: VoidValue[]; idx: number } {
+    const arr = env.get(ref.arrayName).value;
+    if (!Array.isArray(arr)) throw new Error(`[Runtime Error] '${ref.arrayName}' не массив.`);
+    const index = this.toNumber(this.executeNode(ref.indexNode, env));
+    let resolvedIdx = index < 0 ? arr.length + index : index;
+    if (resolvedIdx < 0 || resolvedIdx >= arr.length) throw new Error(`[Runtime Error] Индекс вне границ.`);
+    return { arr, idx: resolvedIdx };
+  }
+
+  private executeDereference(node: DereferenceNode, env: Environment): VoidValue {
+    const target = node.target;
+    if (target.type === "Identifier") {
+      const name = (target as IdentifierNode).name;
+      const variable = env.get(name);
+      if (isVoidLink(variable.value)) {
+        return env.get(variable.value.targetName).value;
+      }
+      if (isVoidArrayElementRef(variable.value)) {
+        const { arr, idx } = this.getArrayElementRef(variable.value, env);
+        return arr[idx];
+      }
+      throw new Error(`[Runtime Error] * только для ссылок.`);
+    } else if (target.type === "ArrayElementRef") {
+      const refNode = target as ArrayElementRefNode;
+      const ref = { __isArrayElementRef: true as const, arrayName: refNode.array, indexNode: refNode.index };
+      const arr = env.get(ref.arrayName).value;
+      if (!Array.isArray(arr)) throw new Error(`[Runtime Error] '${ref.arrayName}' не массив.`);
+      const index = this.toNumber(this.executeNode(ref.indexNode, env));
+      let resolvedIdx = index < 0 ? arr.length + index : index;
+      if (resolvedIdx < 0 || resolvedIdx >= arr.length) throw new Error(`[Runtime Error] Индекс вне границ.`);
+      return arr[resolvedIdx];
+    } else if (target.type === "IndexAccess") {
+      const indexAccess = target as IndexAccessNode;
+      const obj = this.executeNode(indexAccess.object, env);
+      const index = this.executeNode(indexAccess.index, env);
+      if (Array.isArray(obj)) {
+        const idx = this.toNumber(index);
+        let resolvedIdx = idx < 0 ? obj.length + idx : idx;
+        if (resolvedIdx < 0 || resolvedIdx >= obj.length) throw new Error(`[Runtime Error] Индекс вне границ.`);
+        return obj[resolvedIdx];
+      }
+      throw new Error(`[Runtime Error] * не применим.`);
+    }
+    throw new Error(`[Runtime Error] * не применим.`);
   }
 
   private executeIdentifier(node: IdentifierNode, env: Environment): VoidValue { return env.get(node.name).value; }
   
+  private executeNamespaceCall(node: NamespaceCallNode, env: Environment): VoidValue {
+    const nsFuncs = this.namespaces.get(node.namespace);
+    if (!nsFuncs) throw new Error(`[Runtime Error] Пространство имён '${node.namespace}' не найдено.`);
+    const func = nsFuncs.get(node.name);
+    if (!func) throw new Error(`[Runtime Error] Функция '${node.name}' не найдена в '${node.namespace}'.`);
+    
+    const args = node.args.map(arg => this.executeNode(arg, env));
+    if (args.length !== func.params.length) throw new Error(`[Runtime Error] Неверное кол-во аргументов для '${node.namespace}::${node.name}'.`);
+    
+    const funcEnv = new Environment(env);
+    for (let i = 0; i < func.params.length; i++) {
+      let argVal = args[i];
+      if (func.params[i].type !== "list" && func.params[i].type !== "dict" && func.params[i].type !== "link") {
+        argVal = this.castValue(argVal, func.params[i].type, func.params[i].name);
+      }
+      funcEnv.define(func.params[i].name, func.params[i].type, argVal);
+    }
+    
+    try { this.executeBlock(func.body, funcEnv); } catch (e) { if (e instanceof ReturnSignal) return e.value; throw e; }
+    return null;
+  }
+
   private executeFunctionCall(node: FunctionCallNode, env: Environment): VoidValue {
     const args = node.args.map(arg => this.executeNode(arg, env));
     switch (node.name) {
